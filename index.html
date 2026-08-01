@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vrijdaglunch — Anderz</title>
+<style>
+  :root{
+    --ink:#1c1a17;
+    --bg-desk:#2b2926;
+    --panel:#37342f;
+    --panel-border:#4a453d;
+    --muted:#a89f8f;
+    --paper:#fbfaf6;
+    --accent:#b23a2e;
+    --accent-soft:#c9573f;
+    --ok:#5c7a52;
+    --sans: 'Segoe UI', Inter, -apple-system, Roboto, sans-serif;
+    --mono: 'Courier New', ui-monospace, monospace;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh;
+    background: var(--bg-desk);
+    color:#eee; font-family:var(--sans);
+    padding:28px 14px 60px;
+  }
+  .app{ max-width:760px; margin:0 auto; }
+
+  header.top{ margin-bottom:20px; }
+  .eyebrow{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-soft); font-weight:700; margin:0 0 6px; }
+  h1{ font-size:24px; margin:0 0 4px; font-weight:700; letter-spacing:-0.01em; }
+  .sub{ color:var(--muted); font-size:13px; margin:0; }
+
+  .tabs{ display:flex; gap:6px; margin:20px 0 16px; border-bottom:1px solid var(--panel-border); }
+  .tab{
+    padding:9px 14px; font-size:13px; font-weight:600; color:var(--muted);
+    cursor:pointer; border-radius:8px 8px 0 0; border:1px solid transparent;
+  }
+  .tab.active{ color:#fff; background:var(--panel); border-color:var(--panel-border); border-bottom-color:var(--panel); }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .panel{ background:var(--panel); border:1px solid var(--panel-border); border-radius:10px; padding:18px; margin-bottom:16px; }
+  .panel h2{ font-size:14px; margin:0 0 12px; color:#f1ede4; }
+  .panel h3{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:16px 0 8px; }
+
+  label{ display:block; font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; font-weight:600; }
+  input[type=text], input[type=number], input[type=date], textarea{
+    width:100%; background:#211f1c; border:1px solid #4a453d; color:#e9e5dc;
+    border-radius:7px; padding:9px 11px; font-family:var(--sans); font-size:13.5px;
+  }
+  textarea{ font-family:var(--mono); font-size:12.5px; min-height:160px; resize:vertical; }
+  input:focus, textarea:focus{ outline:2px solid var(--accent-soft); outline-offset:1px; }
+
+  button{
+    font-family:var(--sans); font-size:13px; font-weight:650; border-radius:7px;
+    border:1px solid transparent; padding:9px 14px; cursor:pointer;
+  }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-ghost{ background:transparent; color:var(--muted); border:1px solid var(--panel-border); }
+  .btn-ghost:hover{ color:#eee; border-color:var(--muted); }
+  .btn-sm{ padding:5px 9px; font-size:12px; }
+
+  .round-banner{
+    display:flex; justify-content:space-between; align-items:center;
+    background:#211f1c; border:1px dashed var(--panel-border); border-radius:8px;
+    padding:10px 14px; font-size:12.5px; color:var(--muted); margin-bottom:16px;
+  }
+  .round-banner b{ color:#f1ede4; }
+
+  .menu-cat{ margin-bottom:8px; border:1px solid #423e37; border-radius:8px; overflow:hidden; }
+  .menu-cat summary{
+    list-style:none; cursor:pointer; padding:11px 14px; font-size:13px; font-weight:650;
+    color:#f1ede4; background:#312e29; display:flex; justify-content:space-between; align-items:center;
+  }
+  .menu-cat summary::-webkit-details-marker{ display:none; }
+  .menu-cat summary .count{ color:var(--muted); font-weight:500; font-size:11.5px; }
+  .menu-cat summary .chevron{ transition:transform .15s ease; margin-left:8px; color:var(--muted); }
+  .menu-cat[open] summary .chevron{ transform:rotate(90deg); }
+  .menu-cat .cat-body{ padding:2px 14px 6px; }
+  .menu-row.hidden{ display:none; }
+
+  .groups-panel{ padding:2px 0 12px 4px; margin-bottom:6px; border-bottom:1px solid #423e37; }
+  .grp{ margin-bottom:8px; }
+  .grp-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:5px; }
+  .grp-opts{ display:flex; flex-wrap:wrap; gap:6px 14px; }
+  .grp-opts select{ width:auto; min-width:160px; padding:6px 8px; font-size:12px; background:#211f1c; color:#e9e5dc; border:1px solid var(--panel-border); border-radius:6px; }
+  .chk{ display:flex; align-items:center; gap:5px; font-size:12px; color:#e9e5dc; cursor:pointer; }
+  .chk input{ width:auto; accent-color:var(--accent); }
+  .opt-price{ color:var(--ok); font-size:11px; }
+
+  .menu-layout{ display:flex; align-items:flex-start; gap:20px; }
+  .menu-list-col{ flex:1; min-width:0; }
+
+  .cat-nav{
+    display:block;
+    flex-shrink:0; width:180px;
+    position:sticky; top:20px;
+    max-height:80vh; overflow-y:auto;
+    background:#2b2926; border:1px solid var(--panel-border); border-radius:10px;
+    padding:10px;
+  }
+  .cat-nav .cat-nav-item{
+    display:flex; justify-content:space-between; gap:8px;
+    padding:7px 9px; border-radius:6px; font-size:12.5px; color:var(--muted);
+    cursor:pointer;
+  }
+  .cat-nav .cat-nav-item:hover{ background:#37342f; color:#eee; }
+  .cat-nav .cat-nav-item .n{ font-size:11px; }
+  @media (max-width:640px){
+    .menu-layout{ flex-direction:column; }
+    .cat-nav{ width:100%; position:static; max-height:none; }
+  }
+
+  .sticky-bar{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    background:#211f1c; border-top:1px solid var(--panel-border);
+    padding:10px 16px; box-shadow:0 -8px 24px rgba(0,0,0,.35);
+  }
+  .sticky-bar-row{
+    max-width:760px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:12px;
+  }
+  .sticky-bar-row span{ font-size:13px; color:#f1ede4; font-weight:600; }
+  .sticky-bar .confirm{ max-width:760px; margin:0 auto 8px; }
+  .menu-row{
+    display:flex; align-items:center; gap:10px; padding:8px 0;
+    border-bottom:1px solid #423e37;
+  }
+  .menu-row:last-child{ border-bottom:none; }
+  .menu-row .nm{ flex:1; font-size:13.5px; }
+  .menu-row .pr{ font-size:12.5px; color:var(--muted); width:70px; text-align:right; }
+  .qty{ display:flex; align-items:center; gap:6px; }
+  .qty button{ width:26px; height:26px; padding:0; background:#211f1c; color:#eee; border:1px solid var(--panel-border); font-size:14px; }
+  .qty span{ min-width:16px; text-align:center; font-size:13px; }
+  .note-input{ width:150px; }
+  .note-input input, .note-input select{ width:100%; padding:5px 8px; font-size:12px; }
+  .note-input select{ background:#211f1c; color:#e9e5dc; border:1px solid var(--panel-border); border-radius:5px; }
+
+  .empty-note{ color:var(--muted); font-size:12.5px; padding:16px; text-align:center; border:1px dashed var(--panel-border); border-radius:8px; }
+
+  .who-filled{ font-size:12px; color:var(--muted); margin-top:10px; }
+  .who-filled b{ color:#f1ede4; }
+
+  .confirm{
+    background:#28352450; border:1px solid var(--ok); color:#cdeac0;
+    border-radius:8px; padding:10px 14px; font-size:13px; margin-top:12px; display:none;
+  }
+  .confirm.show{ display:block; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th, td{ text-align:left; padding:7px 6px; border-bottom:1px solid #423e37; }
+  th{ color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
+  td.amt, th.amt{ text-align:right; }
+  tr.grand td{ font-weight:700; border-top:1px solid var(--panel-border); border-bottom:none; padding-top:10px; }
+
+  .agg-row{ display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px dashed #423e37; }
+  .agg-row:last-child{ border-bottom:none; }
+
+  .menu-edit-row{ display:grid; grid-template-columns: 1fr 90px 110px 34px; gap:8px; align-items:center; margin-bottom:4px; }
+  .menu-edit-row input{ padding:7px 9px; font-size:12.5px; }
+  .choices-row{ margin:0 0 12px; padding-left:2px; }
+  .choices-row input{ width:100%; padding:6px 9px; font-size:11.5px; color:#c9c3b6; }
+  .choices-row label{ font-size:10px; margin-bottom:3px; }
+  .del-btn{ background:transparent; color:var(--accent-soft); border:1px solid var(--panel-border); width:34px; height:34px; padding:0; }
+
+  .add-row{ display:grid; grid-template-columns: 1fr 90px 110px auto; gap:8px; margin-top:10px; }
+
+  .hint{ font-size:12px; color:var(--muted); line-height:1.55; margin-top:10px; }
+  .hint b{ color:#dcd6c9; }
+  .warn{ font-size:12px; color:#e0b060; background:#3a2f1c40; border:1px solid #7a5a2a; border-radius:7px; padding:8px 12px; margin-bottom:14px; }
+
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.6);
+    z-index:100; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:10px;
+    padding:20px; max-width:340px; width:100%;
+  }
+  .modal-title{ font-size:14px; font-weight:700; color:#f1ede4; margin:0 0 8px; }
+  .modal-message{ font-size:13px; color:var(--muted); margin:0 0 12px; line-height:1.5; }
+  .modal-box input{ margin-bottom:14px; }
+  .modal-btns{ display:flex; justify-content:flex-end; gap:8px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <p class="eyebrow">Team lunch tool</p>
+    <h1>🍟 Vrijdaglunch — Anderz</h1>
+    <p class="sub">Iedereen vult hier zijn bestelling in. Jij ziet in "Overzicht" de verzamellijst en het bedrag per collega.</p>
+  </header>
+
+  <div class="round-banner">
+    <span>Huidige ronde: <b id="roundLabel">—</b></span>
+    <span id="roundCountLabel"></span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-view="order">Bestellen</div>
+    <div class="tab" data-view="overview">Overzicht</div>
+    <div class="tab" data-view="menu">Menu beheren</div>
+  </div>
+
+  <!-- ORDER VIEW -->
+  <div class="view active" id="view-order">
+    <div class="panel">
+      <label for="personName">Jouw naam</label>
+      <input type="text" id="personName" placeholder="bijv. Tom">
+    </div>
+
+    <div class="panel" id="menuPanel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 style="margin:0">Menu</h2>
+        <button class="btn-ghost btn-sm" onclick="toggleAllCategories()" id="toggleAllBtn">Alles uitklappen</button>
+      </div>
+      <input type="text" id="menuSearch" placeholder="Zoek een gerecht..." oninput="filterMenu()" style="margin-bottom:12px;">
+      <div class="menu-layout">
+        <nav id="catNav" class="cat-nav"></nav>
+        <div id="menuList" class="menu-list-col"></div>
+      </div>
+      <h3>Iets anders?</h3>
+      <div class="menu-row">
+        <input type="text" id="customName" class="nm" placeholder="Typ zelf een gerecht..." style="flex:1; margin-right:8px;">
+        <input type="text" id="customPrice" class="pr" placeholder="€" style="width:70px;" oninput="updateStickySummary()">
+        <div class="qty">
+          <button onclick="changeCustomQty(-1)">−</button>
+          <span id="customQty">0</span>
+          <button onclick="changeCustomQty(1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="who-filled">Bij "Bestelling doorgeven" opent je eigen mailprogramma met een kant-en-klare mail naar Tom. Werkt dat niet, dan verschijnt hieronder de tekst om zelf te kopiëren en te plakken.</div>
+
+    <div class="panel" id="mailFallback" style="display:none">
+      <h2>Mail niet vanzelf geopend?</h2>
+      <p class="hint">Maak zelf een nieuwe mail naar <b id="fallbackEmail"></b>, plak het onderwerp en de inhoud hieronder, en verstuur 'm.</p>
+      <label>Onderwerp</label>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input type="text" id="fallbackSubject" readonly style="flex:1">
+        <button class="btn-ghost btn-sm" onclick="copyField('fallbackSubject')">Kopieer</button>
+      </div>
+      <label>Inhoud</label>
+      <textarea id="fallbackBody" readonly style="min-height:180px"></textarea>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <button class="btn-primary btn-sm" onclick="copyField('fallbackBody')">Kopieer inhoud</button>
+        <a id="fallbackMailLink" class="btn-ghost btn-sm" style="text-decoration:none; display:inline-flex; align-items:center;" href="#">Toch proberen mailprogramma te openen</a>
+      </div>
+    </div>
+
+    <div style="height:70px"></div>
+  </div>
+
+  <div class="sticky-bar" id="stickyBar">
+    <div class="confirm" id="confirmBox"></div>
+    <div class="sticky-bar-row">
+      <span id="stickySummary">Nog niets gekozen</span>
+      <button class="btn-primary" onclick="submitOrder()">Bestelling doorgeven</button>
+    </div>
+  </div>
+
+  <!-- OVERVIEW VIEW -->
+  <div class="view" id="view-overview">
+    <div class="panel">
+      <h2>Bestel-mails plakken</h2>
+      <p class="hint">Zoek in je mail op onderwerp "Vrijdaglunch bestelling", selecteer alle binnengekomen bestel-mails (de tekst, niet de opmaak) en plak ze hieronder — allemaal achter elkaar mag gewoon.</p>
+      <textarea id="ordersPaste" placeholder="Plak hier de tekst van alle bestel-mails..."></textarea>
+      <div style="margin-top:10px">
+        <button class="btn-primary" onclick="parseAndShowOverview()">Bestellingen herkennen</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin:0">Bestellingen</h2>
+      <div id="overviewTable"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Verzamellijst (voor Anderz)</h2>
+      <div id="aggList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Tikkie-bericht</h2>
+      <textarea id="tikkieText"></textarea>
+      <div class="btn-row" style="margin-top:10px; display:flex; gap:8px;">
+        <button class="btn-primary" onclick="copyTikkie()">Kopieer bericht</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Nieuwe ronde starten</h2>
+      <label for="newRoundDate">Datum</label>
+      <input type="date" id="newRoundDate">
+      <div style="margin-top:10px">
+        <button class="btn-primary" onclick="startNewRound()">Start ronde</button>
+      </div>
+      <p class="hint">Dit bepaalt de datum die in de mail-bestellingen van collega's komt te staan. Zet 'm door zodra iedereen voor deze week besteld heeft.</p>
+    </div>
+  </div>
+
+  <!-- MENU VIEW -->
+  <div class="view" id="view-menu">
+    <div class="panel">
+      <h2>Menukaart plakken</h2>
+      <p class="hint">Ga naar <b>bestellen.eetsalonanderz.nl</b>, kies "Afhalen Anderz", open de menupagina, selecteer alles (Ctrl+A / Cmd+A) en plak de tekst hieronder. Klopt een naam of prijs niet helemaal? Alles is hierna gewoon te bewerken.</p>
+      <textarea id="menuPaste" placeholder="Plak hier de menukaart-tekst..."></textarea>
+      <div style="margin-top:10px">
+        <button class="btn-primary" onclick="parseMenuPaste()">Herken items</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Huidige menu</h2>
+      <div id="menuEditList"></div>
+      <div class="add-row">
+        <input type="text" id="addName" placeholder="Naam">
+        <input type="text" id="addPrice" placeholder="€ 0,00">
+        <input type="text" id="addCategory" placeholder="Categorie (optioneel)">
+        <button class="btn-primary btn-sm" onclick="addMenuItem()">Toevoegen</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <p class="modal-title" id="modalTitle"></p>
+    <p class="modal-message" id="modalMessage"></p>
+    <input type="text" id="modalInput" style="display:none">
+    <div class="modal-btns">
+      <button class="btn-ghost btn-sm" id="modalCancel" style="display:none">Annuleren</button>
+      <button class="btn-primary btn-sm" id="modalOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function showPrompt(title, message){
+  return new Promise(resolve=>{
+    const overlay = document.getElementById('modalOverlay');
+    const input = document.getElementById('modalInput');
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalMessage').textContent = message;
+    input.style.display = 'block';
+    input.value = '';
+    document.getElementById('modalCancel').style.display = 'inline-block';
+    overlay.classList.add('show');
+    setTimeout(()=>input.focus(), 50);
+
+    const cleanup = (result)=>{
+      overlay.classList.remove('show');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      input.removeEventListener('keydown', onKey);
+      resolve(result);
+    };
+    const okBtn = document.getElementById('modalOk');
+    const cancelBtn = document.getElementById('modalCancel');
+    const onOk = ()=> cleanup(input.value);
+    const onCancel = ()=> cleanup(null);
+    const onKey = (e)=>{ if(e.key === 'Enter') cleanup(input.value); if(e.key === 'Escape') cleanup(null); };
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    input.addEventListener('keydown', onKey);
+  });
+}
+
+function showAlert(message, title){
+  return new Promise(resolve=>{
+    const overlay = document.getElementById('modalOverlay');
+    document.getElementById('modalTitle').textContent = title || 'Let op';
+    document.getElementById('modalMessage').textContent = message;
+    document.getElementById('modalInput').style.display = 'none';
+    document.getElementById('modalCancel').style.display = 'none';
+    overlay.classList.add('show');
+
+    const okBtn = document.getElementById('modalOk');
+    const onOk = ()=>{ overlay.classList.remove('show'); okBtn.removeEventListener('click', onOk); resolve(); };
+    okBtn.addEventListener('click', onOk);
+  });
+}
+
+// ---------- storage helpers: always localStorage (no Claude account dependency, no login wall) ----------
+const LS_PREFIX = 'anderz-lunch::';
+async function sGet(key, shared){
+  try{ return localStorage.getItem(LS_PREFIX+key); } catch(e){ return null; }
+}
+async function sSet(key, value, shared){
+  try{ localStorage.setItem(LS_PREFIX+key, value); return true; } catch(e){ return false; }
+}
+async function sList(prefix, shared){
+  try{
+    const out = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith(LS_PREFIX+prefix)) out.push(k.slice(LS_PREFIX.length));
+    }
+    return out;
+  } catch(e){ return []; }
+}
+
+function slug(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+function euro(n){ return '€ ' + n.toFixed(2).replace('.', ','); }
+function parseEuro(s){
+  if(typeof s === 'number') return s;
+  const m = (s||'').replace(/[^\d,.-]/g,'').replace(',', '.');
+  const v = parseFloat(m);
+  return isNaN(v) ? 0 : v;
+}
+function nextFriday(){
+  const d = new Date();
+  const day = d.getDay();
+  const diff = (5 - day + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0,10);
+}
+function fmtDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('nl-NL', { weekday:'long', day:'numeric', month:'long' });
+}
+
+// ---------- state ----------
+let roundKey = null;
+let menu = [];
+let customQty = 0;
+
+const SEED_MENU = [{"name": "Broodje kaas", "price": 3.6, "category": "Vers belegde broodjes", "id": "seed11", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje gegrilde ham", "price": 3.6, "category": "Vers belegde broodjes", "id": "seed12", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje gekookt ei", "price": 3.95, "category": "Vers belegde broodjes", "id": "seed13", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje gegrilde kipfilet", "price": 7.95, "category": "Vers belegde broodjes", "id": "seed14", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje gezond", "price": 7.5, "category": "Vers belegde broodjes", "id": "seed15", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje zalm", "price": 8.25, "category": "Vers belegde broodjes", "id": "seed16", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje kip Anderz", "price": 8.25, "category": "Vers belegde broodjes", "id": "seed17", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje carpaccio", "price": 8.25, "category": "Vers belegde broodjes", "id": "seed18", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje pulled pork", "price": 8.25, "category": "Vers belegde broodjes", "id": "seed19", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje gehakt Anderz", "price": 8.25, "category": "Vers belegde broodjes", "id": "seed20", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje Pulled chicken", "price": 8.25, "category": "Vers belegde broodjes", "id": "seed21", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Filet truffel deluxe", "price": 7.95, "category": "Vers belegde broodjes", "id": "seed22", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Brie deluxe", "price": 7.95, "category": "Vers belegde broodjes", "id": "seed23", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Broodje Ribfinger", "price": 8.5, "category": "Vers belegde broodjes", "id": "seed24", "choices": "Stokbrood, Zacht bolletje, Triangle (wit), Triangle (bruin), Schiacciata", "groups": []}, {"name": "Friet klein", "price": 2.5, "category": "Friet", "id": "seed25", "choices": "Kl. Mayo, Kl. Curry, Kl. Ketchup, Kl. Speciaalsaus, Kl. Oorlogsaus, Kl. Pindasaus, Kl. Joppiesaus, Geen saus", "groups": []}, {"name": "Friet normaal", "price": 3.0, "category": "Friet", "id": "seed26", "choices": "Kl. Mayo, Kl. Curry, Kl. Ketchup, Kl. Speciaalsaus, Kl. Oorlogsaus, Kl. Pindasaus, Kl. Joppiesaus, Geen saus", "groups": []}, {"name": "Friet groot", "price": 3.95, "category": "Friet", "id": "seed27", "choices": "Kl. Mayo, Kl. Curry, Kl. Ketchup, Kl. Speciaalsaus, Kl. Oorlogsaus, Kl. Pindasaus, Kl. Joppiesaus, Geen saus", "groups": []}, {"name": "Foodbucket S", "price": 11.0, "category": "Friet", "id": "seed28", "choices": "Kl. Mayo, Kl. Curry, Kl. Ketchup, Kl. Speciaalsaus, Kl. Oorlogsaus, Kl. Pindasaus, Kl. Joppiesaus, Geen saus", "groups": []}, {"name": "Foodbucket M", "price": 15.25, "category": "Friet", "id": "seed29", "choices": "Kl. Mayo, Kl. Curry, Kl. Ketchup, Kl. Speciaalsaus, Kl. Oorlogsaus, Kl. Pindasaus, Kl. Joppiesaus, Geen saus", "groups": []}, {"name": "Foodbucket L", "price": 20.0, "category": "Friet", "id": "seed30", "choices": "Kl. Mayo, Kl. Curry, Kl. Ketchup, Kl. Speciaalsaus, Kl. Oorlogsaus, Kl. Pindasaus, Kl. Joppiesaus, Geen saus", "groups": []}, {"name": "gebakken aardappelen", "price": 3.95, "category": "Friet", "id": "seed31", "choices": "Kl. Mayo, Kl. Curry, Kl. Ketchup, Kl. Speciaalsaus, Kl. Oorlogsaus, Kl. Pindasaus, Kl. Joppiesaus, Geen saus", "groups": []}, {"name": "uitjes", "price": 0.6, "category": "Sauzen", "id": "seed32", "choices": "", "groups": []}, {"name": "kl. Mayo", "price": 0.75, "category": "Sauzen", "id": "seed33", "choices": "", "groups": []}, {"name": "Middel mayo", "price": 1.8, "category": "Sauzen", "id": "seed34", "choices": "", "groups": []}, {"name": "Kl. Curry", "price": 0.75, "category": "Sauzen", "id": "seed35", "choices": "", "groups": []}, {"name": "Middel curry", "price": 1.8, "category": "Sauzen", "id": "seed36", "choices": "", "groups": []}, {"name": "Kl. Ketchup", "price": 0.75, "category": "Sauzen", "id": "seed37", "choices": "", "groups": []}, {"name": "Middel ketchup", "price": 1.8, "category": "Sauzen", "id": "seed38", "choices": "", "groups": []}, {"name": "Kl. Pindasaus", "price": 0.95, "category": "Sauzen", "id": "seed39", "choices": "", "groups": []}, {"name": "Middel pindasaus", "price": 2.0, "category": "Sauzen", "id": "seed40", "choices": "", "groups": []}, {"name": "Kl. Joppiesaus", "price": 0.95, "category": "Sauzen", "id": "seed41", "choices": "", "groups": []}, {"name": "Middel joppiesaus", "price": 2.0, "category": "Sauzen", "id": "seed42", "choices": "", "groups": []}, {"name": "Kl. Speciaalsaus", "price": 0.95, "category": "Sauzen", "id": "seed43", "choices": "", "groups": []}, {"name": "Middel speciaalsaus", "price": 2.0, "category": "Sauzen", "id": "seed44", "choices": "", "groups": []}, {"name": "Kl. Oorlogsaus", "price": 0.95, "category": "Sauzen", "id": "seed45", "choices": "", "groups": []}, {"name": "Middel oorlogsaus", "price": 2.0, "category": "Sauzen", "id": "seed46", "choices": "", "groups": []}, {"name": "Appelmoes", "price": 0.95, "category": "Sauzen", "id": "seed47", "choices": "", "groups": []}, {"name": "Slaatje", "price": 3.25, "category": "Sauzen", "id": "seed48", "choices": "", "groups": []}, {"name": "kl. truffelmayo", "price": 0.95, "category": "Sauzen", "id": "seed49", "choices": "", "groups": []}, {"name": "Middel truffelmayo", "price": 2.0, "category": "Sauzen", "id": "seed50", "choices": "", "groups": []}, {"name": "kl knoflook", "price": 0.75, "category": "Sauzen", "id": "seed51", "choices": "", "groups": []}, {"name": "Middel knoflook", "price": 1.8, "category": "Sauzen", "id": "seed52", "choices": "", "groups": []}, {"name": "kl chilisaus", "price": 0.75, "category": "Sauzen", "id": "seed53", "choices": "", "groups": []}, {"name": "Middel chili", "price": 1.8, "category": "Sauzen", "id": "seed54", "choices": "", "groups": []}, {"name": "kl jambala", "price": 0.95, "category": "Sauzen", "id": "seed55", "choices": "", "groups": []}, {"name": "Middel jambala", "price": 2.0, "category": "Sauzen", "id": "seed56", "choices": "", "groups": []}, {"name": "Anderz", "price": 10.95, "category": "Friet toppers", "id": "seed57", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Boerenfriet", "price": 9.95, "category": "Friet toppers", "id": "seed58", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Friet stoofvlees + Gratis frisdrank", "price": 10.95, "category": "Friet toppers", "id": "seed59", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Kapsalon", "price": 10.25, "category": "Friet toppers", "id": "seed60", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Friet waterfiets", "price": 8.95, "category": "Friet toppers", "id": "seed61", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Pulled pork + Gratis frisdrank", "price": 10.95, "category": "Friet toppers", "id": "seed62", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Pulled chicken + Gratis frisdrank", "price": 10.95, "category": "Friet toppers", "id": "seed63", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Bali", "price": 10.95, "category": "Friet toppers", "id": "seed64", "choices": "", "groups": [{"label": "Opties", "type": "multi", "options": [{"name": "Hard gebakken", "price": 0}, {"name": "Zacht gebakken", "price": 0}, {"name": "Zonder zout", "price": 0}, {"name": "Extra zout", "price": 0}, {"name": "Glutenvrij", "price": 0}, {"name": "Saus erover", "price": 0}]}]}, {"name": "Loaded crispy chicken + Gratis frisdrank", "price": 10.95, "category": "Friet toppers", "id": "seed65", "choices": "", "groups": []}, {"name": "ribfinger", "price": 11.5, "category": "Friet toppers", "id": "seed66", "choices": "", "groups": []}, {"name": "Dallas frites", "price": 10.95, "category": "Friet toppers", "id": "seed67", "choices": "", "groups": []}, {"name": "Plate halve haan", "price": 14.95, "category": "Plateservices", "id": "seed68", "choices": "", "groups": []}, {"name": "Plate schnitzel", "price": 15.25, "category": "Plateservices", "id": "seed69", "choices": "", "groups": []}, {"name": "Plate boerenschnitzel", "price": 16.25, "category": "Plateservices", "id": "seed70", "choices": "", "groups": []}, {"name": "Plate kipsate", "price": 15.95, "category": "Plateservices", "id": "seed71", "choices": "", "groups": []}, {"name": "Plate kophaassate", "price": 15.95, "category": "Plateservices", "id": "seed72", "choices": "", "groups": []}, {"name": "Plate hamburger Anderz", "price": 15.95, "category": "Plateservices", "id": "seed73", "choices": "", "groups": []}, {"name": "Plate hamb. old Amsterdam", "price": 16.95, "category": "Plateservices", "id": "seed74", "choices": "", "groups": []}, {"name": "Plate hamburger compleet", "price": 17.95, "category": "Plateservices", "id": "seed75", "choices": "", "groups": []}, {"name": "Plate kip Anderz", "price": 14.95, "category": "Plateservices", "id": "seed76", "choices": "", "groups": []}, {"name": "Plate spareribs", "price": 16.95, "category": "Plateservices", "id": "seed77", "choices": "", "groups": []}, {"name": "Plate shoarma", "price": 10.95, "category": "Plateservices", "id": "seed78", "choices": "", "groups": []}, {"name": "Plate Ribs en wings", "price": 16.95, "category": "Plateservices", "id": "seed79", "choices": "", "groups": []}, {"name": "gebakken aardappelen i.p.v friet", "price": 1.15, "category": "Plateservices", "id": "seed80", "choices": "", "groups": []}, {"name": "Smulbox vlammetjes", "price": 11.95, "category": "Smulbox", "id": "seed81", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox Crispy chicken", "price": 11.95, "category": "Smulbox", "id": "seed82", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox Hotwings", "price": 11.95, "category": "Smulbox", "id": "seed83", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox mini kaassoufle", "price": 11.95, "category": "Smulbox", "id": "seed84", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox Nacho cheese bites", "price": 11.95, "category": "Smulbox", "id": "seed85", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox Bitterballen", "price": 11.95, "category": "Smulbox", "id": "seed86", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox mini mexicano", "price": 11.95, "category": "Smulbox", "id": "seed87", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox uienringen", "price": 11.95, "category": "Smulbox", "id": "seed88", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Smulbox Kaasstengels", "price": 11.95, "category": "Smulbox", "id": "seed89", "choices": "", "groups": [{"label": "Welke burger", "type": "single", "options": [{"name": "Cheese bacon burger", "price": 0}, {"name": "Chili chicken burger", "price": 0}, {"name": "Hamburger speciaal", "price": 0}]}, {"label": "Saus", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Chilisaus", "price": 0}]}]}, {"name": "Frikandel", "price": 2.25, "category": "Snacks", "id": "seed90", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Huisgemaakte frikandel", "price": 3.5, "category": "Snacks", "id": "seed91", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Frikandel xxl speciaal", "price": 5.9, "category": "Snacks", "id": "seed92", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Frikandel speciaal", "price": 3.0, "category": "Snacks", "id": "seed93", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Huisgemaakte frikandel speciaal", "price": 4.25, "category": "Snacks", "id": "seed94", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Groentekroket vegetarisch", "price": 3.0, "category": "Snacks", "id": "seed95", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Rundvleeskroket", "price": 3.0, "category": "Snacks", "id": "seed96", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Frikandel xxl", "price": 4.75, "category": "Snacks", "id": "seed97", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Kalfskroket", "price": 3.0, "category": "Snacks", "id": "seed98", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Goulashkroket", "price": 3.0, "category": "Snacks", "id": "seed99", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Satékroket", "price": 3.0, "category": "Snacks", "id": "seed100", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Kaaskroket", "price": 3.0, "category": "Snacks", "id": "seed101", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Bamischijf", "price": 2.95, "category": "Snacks", "id": "seed102", "choices": "", "groups": []}, {"name": "Nasischijf", "price": 2.95, "category": "Snacks", "id": "seed103", "choices": "", "groups": []}, {"name": "Kaassoufflé ham/kaas", "price": 2.9, "category": "Snacks", "id": "seed104", "choices": "", "groups": []}, {"name": "Kaassoufflé pikante kaas", "price": 2.9, "category": "Snacks", "id": "seed105", "choices": "", "groups": []}, {"name": "Loempia", "price": 4.9, "category": "Snacks", "id": "seed106", "choices": "", "groups": []}, {"name": "Berehap met saus", "price": 4.75, "category": "Snacks", "id": "seed107", "choices": "", "groups": []}, {"name": "Boerenberehap met saus", "price": 5.75, "category": "Snacks", "id": "seed108", "choices": "", "groups": []}, {"name": "Mexicano", "price": 3.75, "category": "Snacks", "id": "seed109", "choices": "", "groups": []}, {"name": "Mexicano XXl", "price": 4.75, "category": "Snacks", "id": "seed110", "choices": "", "groups": []}, {"name": "Pikanto", "price": 3.0, "category": "Snacks", "id": "seed111", "choices": "", "groups": []}, {"name": "Braadworst", "price": 3.75, "category": "Snacks", "id": "seed112", "choices": "", "groups": []}, {"name": "Smulrol", "price": 3.75, "category": "Snacks", "id": "seed113", "choices": "", "groups": []}, {"name": "Portie vlammetjes", "price": 4.25, "category": "Snacks", "id": "seed114", "choices": "", "groups": []}, {"name": "Sitostick", "price": 4.25, "category": "Snacks", "id": "seed115", "choices": "", "groups": []}, {"name": "Shoarmarol met saus", "price": 4.75, "category": "Snacks", "id": "seed116", "choices": "", "groups": []}, {"name": "Loempia speciaal", "price": 6.4, "category": "Snacks", "id": "seed117", "choices": "", "groups": []}, {"name": "Vietnamese loempia", "price": 4.95, "category": "Snacks", "id": "seed118", "choices": "", "groups": []}, {"name": "Runder Hamburger", "price": 2.95, "category": "Snacks", "id": "seed119", "choices": "", "groups": []}, {"name": "Bitterballen (6 st.)", "price": 5.5, "category": "Snacks", "id": "seed120", "choices": "", "groups": []}, {"name": "Old Amsterdam bitterballen (6 st.)", "price": 5.25, "category": "Snacks", "id": "seed121", "choices": "", "groups": []}, {"name": "Bittergarnituur xl (8 st.)", "price": 5.95, "category": "Snacks", "id": "seed122", "choices": "", "groups": []}, {"name": "Kaasstengels", "price": 4.75, "category": "Snacks", "id": "seed123", "choices": "", "groups": []}, {"name": "Huisgemaakte gehaktbal", "price": 4.4, "category": "Snacks", "id": "seed124", "choices": "", "groups": []}, {"name": "Viandel", "price": 3.0, "category": "Snacks", "id": "seed125", "choices": "", "groups": []}, {"name": "Huisgemaakte lihanboutje", "price": 3.5, "category": "Snacks", "id": "seed126", "choices": "", "groups": []}, {"name": "Knakworst", "price": 2.95, "category": "Snacks", "id": "seed127", "choices": "", "groups": []}, {"name": "Kipcorn", "price": 2.9, "category": "Snacks", "id": "seed128", "choices": "", "groups": []}, {"name": "Kipnuggets (6 st.)", "price": 4.25, "category": "Snacks", "id": "seed129", "choices": "", "groups": []}, {"name": "Hotwings (6 st.)", "price": 5.95, "category": "Snacks", "id": "seed130", "choices": "", "groups": []}, {"name": "Crispy chick'n (6 st.)", "price": 6.25, "category": "Snacks", "id": "seed131", "choices": "", "groups": []}, {"name": "uienringen", "price": 4.25, "category": "Snacks", "id": "seed132", "choices": "", "groups": []}, {"name": "Vlampijp", "price": 3.0, "category": "Snacks", "id": "seed133", "choices": "", "groups": []}, {"name": "Halve haan", "price": 9.0, "category": "Snacks", "id": "seed134", "choices": "", "groups": []}, {"name": "Portie kip saté met saus", "price": 8.5, "category": "Snacks", "id": "seed135", "choices": "", "groups": []}, {"name": "Varkensschnitzel", "price": 7.95, "category": "Snacks", "id": "seed136", "choices": "", "groups": []}, {"name": "Streng spareribs", "price": 9.95, "category": "Snacks", "id": "seed137", "choices": "", "groups": []}, {"name": "Portie kophaassate met saté", "price": 8.5, "category": "Snacks", "id": "seed138", "choices": "", "groups": []}, {"name": "Zacht bolletje", "price": 0.65, "category": "Snacks", "id": "seed139", "choices": "", "groups": []}, {"name": "Losse Ribs en wings", "price": 9.95, "category": "Snacks", "id": "seed140", "choices": "", "groups": []}, {"name": "hot honey wings ( 3 st )", "price": 5.95, "category": "Snacks", "id": "seed141", "choices": "", "groups": []}, {"name": "Kaassoufflé vegetarisch", "price": 2.9, "category": "Vega/Gluten Snacks", "id": "seed142", "choices": "", "groups": []}, {"name": "Bamischijf vegetarisch", "price": 2.95, "category": "Vega/Gluten Snacks", "id": "seed143", "choices": "", "groups": []}, {"name": "Bitterballen vegetarisch", "price": 5.5, "category": "Vega/Gluten Snacks", "id": "seed144", "choices": "", "groups": []}, {"name": "Groentekroket vegetarisch", "price": 3.0, "category": "Vega/Gluten Snacks", "id": "seed145", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Kipcorn vegetarisch", "price": 2.95, "category": "Vega/Gluten Snacks", "id": "seed146", "choices": "", "groups": []}, {"name": "Frikandel vegetarisch", "price": 2.95, "category": "Vega/Gluten Snacks", "id": "seed147", "choices": "", "groups": []}, {"name": "Nacho cheese bites incl saus", "price": 4.95, "category": "Vega/Gluten Snacks", "id": "seed148", "choices": "", "groups": []}, {"name": "Vegetarische kroket", "price": 3.0, "category": "Vega/Gluten Snacks", "id": "seed149", "choices": "", "groups": []}, {"name": "Mac 'n cheese burger", "price": 8.95, "category": "Vega/Gluten Snacks", "id": "seed150", "choices": "", "groups": []}, {"name": "Glutenvrije kroket", "price": 3.35, "category": "Vega/Gluten Snacks", "id": "seed151", "choices": "", "groups": []}, {"name": "Glutenvrije frikandel", "price": 3.2, "category": "Vega/Gluten Snacks", "id": "seed152", "choices": "Los, Zacht bolletje, Stokbrood", "groups": []}, {"name": "Glutenvrije Bamischijf", "price": 3.35, "category": "Vega/Gluten Snacks", "id": "seed153", "choices": "", "groups": []}, {"name": "Kids deal + Gratis softijsje", "price": 6.95, "category": "Kindermenu", "id": "seed154", "choices": "", "groups": []}, {"name": "Burger Anderz", "price": 9.5, "category": "Luxe hamburger", "id": "seed155", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Old Amsterdam Burger", "price": 10.95, "category": "Luxe hamburger", "id": "seed156", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Hamburger compleet", "price": 10.95, "category": "Luxe hamburger", "id": "seed157", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Toren van Pisa", "price": 10.95, "category": "Luxe hamburger", "id": "seed158", "choices": "Runderburger, Kipburger", "groups": [{"label": "Vlees", "type": "single", "options": [{"name": "Runderburger", "price": 0}, {"name": "Kipburger", "price": 0}]}, {"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Mac 'n cheese burger", "price": 8.95, "category": "Luxe hamburger", "id": "seed159", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Texas beefburger", "price": 10.95, "category": "Luxe hamburger", "id": "seed160", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Truffel beefburger", "price": 10.95, "category": "Luxe hamburger", "id": "seed161", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Chicken burger deluxe", "price": 10.95, "category": "Luxe hamburger", "id": "seed162", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Mac 'n cheese deluxe", "price": 10.95, "category": "Luxe hamburger", "id": "seed163", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Bakwijze", "type": "single", "options": [{"name": "Rauw", "price": 0}, {"name": "Medium", "price": 0}, {"name": "Doorbakken", "price": 0}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Smashburger single", "price": 8.95, "category": "Luxe hamburger", "id": "seed164", "choices": "", "groups": []}, {"name": "Smashburger double", "price": 10.95, "category": "Luxe hamburger", "id": "seed165", "choices": "", "groups": []}, {"name": "Smashburger triple", "price": 12.95, "category": "Luxe hamburger", "id": "seed166", "choices": "", "groups": []}, {"name": "Hamburger basic", "price": 4.75, "category": "Hamburger / Kipburger", "id": "seed167", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Hamburger speciaal", "price": 5.95, "category": "Hamburger / Kipburger", "id": "seed168", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Cheeseburger", "price": 5.95, "category": "Hamburger / Kipburger", "id": "seed169", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Cheese bacon burger", "price": 6.95, "category": "Hamburger / Kipburger", "id": "seed170", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Dubbeldekker", "price": 10.95, "category": "Hamburger / Kipburger", "id": "seed171", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Toren van Pisa", "price": 10.95, "category": "Hamburger / Kipburger", "id": "seed172", "choices": "Runderburger, Kipburger", "groups": [{"label": "Vlees", "type": "single", "options": [{"name": "Runderburger", "price": 0}, {"name": "Kipburger", "price": 0}]}, {"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Hawaiiburger", "price": 6.5, "category": "Hamburger / Kipburger", "id": "seed173", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Kipburger", "price": 5.95, "category": "Hamburger / Kipburger", "id": "seed174", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Kip hawaiiburger", "price": 6.5, "category": "Hamburger / Kipburger", "id": "seed175", "choices": "", "groups": [{"label": "Zonder groente / extra's", "type": "multi", "options": [{"name": "zonder ui", "price": 0}, {"name": "zonder tomaat", "price": 0}, {"name": "zonder augurk", "price": 0}, {"name": "zonder komkommer", "price": 0}, {"name": "zonder saus", "price": 0}, {"name": "met ui", "price": 0}, {"name": "zonder paprika", "price": 0}, {"name": "zonder champignons", "price": 0}, {"name": "Extra bacon", "price": 1.0}, {"name": "Extra ei", "price": 0.75}, {"name": "Zonder bacon", "price": 0}, {"name": "Zonder ei", "price": 0}, {"name": "Zonder ananas", "price": 0}, {"name": "Saus erover", "price": 0}, {"name": "extra kaas", "price": 0.75}, {"name": "uienringen", "price": 1.5}]}, {"label": "Saus i.p.v.", "type": "single", "options": [{"name": "Mayo", "price": 0}, {"name": "Curry", "price": 0}, {"name": "Ketchup", "price": 0}, {"name": "Speciaal", "price": 0}, {"name": "Oorlog", "price": 0}, {"name": "Joppie", "price": 0}, {"name": "Zonder saus", "price": 0}, {"name": "Chilisaus", "price": 0}, {"name": "Knoflooksaus", "price": 0}, {"name": "Bbq saus", "price": 0}, {"name": "Pindasaus", "price": 0}, {"name": "Jambala", "price": 0}, {"name": "Truffelmayo", "price": 0}]}]}, {"name": "Maaltijdsalade carpaccio", "price": 10.95, "category": "Maaltijdsalades", "id": "seed176", "choices": "", "groups": []}, {"name": "Maaltijdsalade zalm", "price": 10.95, "category": "Maaltijdsalades", "id": "seed177", "choices": "", "groups": []}, {"name": "Maaltijdsalade gegrilde kipfilet", "price": 10.95, "category": "Maaltijdsalades", "id": "seed178", "choices": "", "groups": []}, {"name": "Maaltijdsalade vegetarisch kipcorn", "price": 10.95, "category": "Maaltijdsalades", "id": "seed179", "choices": "", "groups": []}, {"name": "Maaltijdsalade Crispy chicken", "price": 10.95, "category": "Maaltijdsalades", "id": "seed180", "choices": "", "groups": []}, {"name": "Blikje coca cola", "price": 2.75, "category": "Dranken", "id": "seed181", "choices": "", "groups": []}, {"name": "Blikje Fanta orange", "price": 2.75, "category": "Dranken", "id": "seed182", "choices": "", "groups": []}, {"name": "Blikje Fanta cassis", "price": 2.75, "category": "Dranken", "id": "seed183", "choices": "", "groups": []}, {"name": "Blikje red bull", "price": 2.9, "category": "Dranken", "id": "seed184", "choices": "", "groups": []}, {"name": "Petfles chaudfontaine", "price": 2.15, "category": "Dranken", "id": "seed185", "choices": "", "groups": []}, {"name": "Blikje coca cola zero", "price": 2.75, "category": "Dranken", "id": "seed186", "choices": "", "groups": []}, {"name": "blikje fuze tea peach", "price": 2.75, "category": "Dranken", "id": "seed187", "choices": "", "groups": []}, {"name": "blikje fuze tea green", "price": 2.75, "category": "Dranken", "id": "seed188", "choices": "", "groups": []}, {"name": "Blikje grolsch", "price": 2.9, "category": "Dranken", "id": "seed189", "choices": "", "groups": []}, {"name": "Caprisun", "price": 1.25, "category": "Dranken", "id": "seed190", "choices": "", "groups": []}, {"name": "Fristi", "price": 2.95, "category": "Dranken", "id": "seed191", "choices": "", "groups": []}, {"name": "Petfles Chaudfontaine rood", "price": 2.15, "category": "Dranken", "id": "seed192", "choices": "", "groups": []}, {"name": "Rivella", "price": 2.75, "category": "Dranken", "id": "seed193", "choices": "", "groups": []}, {"name": "Radler 0.0", "price": 2.9, "category": "Dranken", "id": "seed194", "choices": "", "groups": []}, {"name": "Sprite zero", "price": 2.75, "category": "Dranken", "id": "seed195", "choices": "", "groups": []}, {"name": "Kleine milkshake", "price": 3.0, "category": "IJs", "id": "seed196", "choices": "", "groups": []}, {"name": "Middel milkshake", "price": 3.5, "category": "IJs", "id": "seed197", "choices": "", "groups": []}, {"name": "Grote milkshake", "price": 4.0, "category": "IJs", "id": "seed198", "choices": "", "groups": []}, {"name": "Kleine Family beker softijs", "price": 4.75, "category": "IJs", "id": "seed199", "choices": "", "groups": []}, {"name": "Middel family beker softijs", "price": 5.25, "category": "IJs", "id": "seed200", "choices": "", "groups": []}, {"name": "Grote family beker softijs", "price": 5.75, "category": "IJs", "id": "seed201", "choices": "", "groups": []}, {"name": "Kl. Milkshake Nutella", "price": 3.5, "category": "IJs", "id": "seed202", "choices": "", "groups": []}, {"name": "Mid. Milkshake Nutella", "price": 4.0, "category": "IJs", "id": "seed203", "choices": "", "groups": []}, {"name": "Gr. Milkshake Nutella", "price": 4.5, "category": "IJs", "id": "seed204", "choices": "", "groups": []}, {"name": "Bakje softijs", "price": 2.0, "category": "IJs", "id": "seed205", "choices": "", "groups": []}, {"name": "Sundea", "price": 3.0, "category": "IJs", "id": "seed206", "choices": "", "groups": []}, {"name": "Sundea topper", "price": 3.5, "category": "IJs", "id": "seed207", "choices": "", "groups": []}, {"name": "Sundea Nutella", "price": 3.5, "category": "IJs", "id": "seed208", "choices": "", "groups": []}, {"name": "Explosion", "price": 5.25, "category": "IJs", "id": "seed209", "choices": "", "groups": []}];
+
+// ---------- tabs ----------
+let adminUnlocked = false;
+
+async function checkAdminAccess(){
+  if(adminUnlocked) return true;
+  const savedPin = await sGet('anderz-admin-pin', true);
+  if(!savedPin){
+    const newPin = await showPrompt('Pincode instellen', 'Er is nog geen pincode ingesteld voor "Overzicht" en "Menu beheren". Stel er hier eentje in (alleen jij hoeft die te weten):');
+    if(!newPin) return false;
+    await sSet('anderz-admin-pin', newPin, true);
+    adminUnlocked = true;
+    return true;
+  }
+  const entered = await showPrompt('Pincode', 'Voer de pincode in voor "Overzicht" / "Menu beheren":');
+  if(entered === savedPin){ adminUnlocked = true; return true; }
+  if(entered !== null) await showAlert('Onjuiste pincode.');
+  return false;
+}
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', async ()=>{
+    if((tab.dataset.view === 'overview' || tab.dataset.view === 'menu')){
+      const ok = await checkAdminAccess();
+      if(!ok) return;
+    }
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('view-'+tab.dataset.view).classList.add('active');
+    document.getElementById('stickyBar').style.display = tab.dataset.view === 'order' ? 'block' : 'none';
+  });
+});
+
+// ---------- init ----------
+async function ensureCurrentRound(){
+  let rk = await sGet('anderz-round-active', true);
+  const today = new Date().toISOString().slice(0,10);
+  if(!rk || rk < today){
+    rk = nextFriday();
+    await sSet('anderz-round-active', rk, true);
+  }
+  return rk;
+}
+
+async function init(){
+  roundKey = await ensureCurrentRound();
+  document.getElementById('roundLabel').textContent = fmtDate(roundKey);
+  document.getElementById('newRoundDate').value = nextFriday();
+
+  const storedMenu = await sGet('anderz-menu', true);
+  if(storedMenu){
+    menu = JSON.parse(storedMenu);
+  } else {
+    menu = SEED_MENU;
+    await sSet('anderz-menu', JSON.stringify(menu), true);
+  }
+  renderMenuList();
+  renderMenuEditList();
+  updateStickySummary();
+}
+
+// ---------- ordering ----------
+function renderMenuList(){
+  const el = document.getElementById('menuList');
+  el.innerHTML = '';
+  if(menu.length === 0){
+    el.innerHTML = '<div class="empty-note">Nog geen menu ingesteld. Ga naar het tabblad "Menu beheren" om items toe te voegen.</div>';
+    return;
+  }
+  const cats = {};
+  menu.forEach(item => {
+    const c = item.category || 'Overig';
+    if(!cats[c]) cats[c] = [];
+    cats[c].push(item);
+  });
+  Object.keys(cats).forEach(cat=>{
+    const details = document.createElement('details');
+    details.className = 'menu-cat';
+    const summary = document.createElement('summary');
+    summary.innerHTML = `<span>${cat}</span><span class="count">${cats[cat].length} <span class="chevron">›</span></span>`;
+    details.appendChild(summary);
+    const body = document.createElement('div');
+    body.className = 'cat-body';
+
+    cats[cat].forEach(item=>{
+      const row = document.createElement('div');
+      row.className = 'menu-row';
+      row.dataset.name = item.name.toLowerCase();
+      const hasGroups = item.groups && item.groups.length > 0;
+      const choiceList = (item.choices || '').split(',').map(s=>s.trim()).filter(Boolean);
+      const inputHtml = hasGroups
+        ? ''
+        : choiceList.length
+          ? `<select id="note-${item.id}" class="choice-select">
+               <option value="">— kies —</option>
+               ${choiceList.map(c=>`<option value="${c}">${c}</option>`).join('')}
+             </select>`
+          : `<input type="text" id="note-${item.id}" placeholder="opmerking">`;
+      row.innerHTML = `
+        <span class="nm">${item.name}</span>
+        <span class="pr">${euro(item.price)}</span>
+        <div class="qty">
+          <button onclick="changeQty('${item.id}',-1)">−</button>
+          <span id="qty-${item.id}">0</span>
+          <button onclick="changeQty('${item.id}',1)">+</button>
+        </div>
+        <div class="note-input">${inputHtml}</div>
+      `;
+      body.appendChild(row);
+
+      if(hasGroups){
+        const panel = document.createElement('div');
+        panel.className = 'groups-panel';
+        item.groups.forEach((grp, gi)=>{
+          const grpDiv = document.createElement('div');
+          grpDiv.className = 'grp';
+          const optsHtml = grp.type === 'single'
+            ? `<select id="grp-${item.id}-${gi}" onchange="updateStickySummary()">
+                 <option value="">— kies —</option>
+                 ${grp.options.map(o=>`<option value="${o.name}">${o.name}${o.price?` (+${euro(o.price)})`:''}</option>`).join('')}
+               </select>`
+            : grp.options.map((o,oi)=>`
+                <label class="chk">
+                  <input type="checkbox" id="grp-${item.id}-${gi}-${oi}" value="${o.name}" data-price="${o.price||0}" onchange="updateStickySummary()">
+                  ${o.name}${o.price?` <span class="opt-price">+${euro(o.price)}</span>`:''}
+                </label>`).join('');
+          grpDiv.innerHTML = `<div class="grp-label">${grp.label}</div><div class="grp-opts">${optsHtml}</div>`;
+          panel.appendChild(grpDiv);
+        });
+        body.appendChild(panel);
+      }
+    });
+    details.appendChild(body);
+    el.appendChild(details);
+    details.dataset.catName = cat;
+  });
+  renderCatNav(cats);
+}
+
+function renderCatNav(cats){
+  const nav = document.getElementById('catNav');
+  nav.innerHTML = Object.keys(cats).map(cat =>
+    `<div class="cat-nav-item" onclick="jumpToCategory('${cat.replace(/'/g,"\\'")}')">
+       <span>${cat}</span><span class="n">${cats[cat].length}</span>
+     </div>`
+  ).join('');
+}
+
+function jumpToCategory(cat){
+  const details = Array.from(document.querySelectorAll('.menu-cat')).find(d => d.dataset.catName === cat);
+  if(!details) return;
+  details.open = true;
+  details.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function filterMenu(){
+  const q = document.getElementById('menuSearch').value.trim().toLowerCase();
+  document.querySelectorAll('.menu-cat').forEach(cat=>{
+    let anyMatch = false;
+    cat.querySelectorAll('.menu-row').forEach(row=>{
+      const match = !q || row.dataset.name.includes(q);
+      row.classList.toggle('hidden', !match);
+      const next = row.nextElementSibling;
+      if(next && next.classList.contains('groups-panel')){
+        next.style.display = match ? '' : 'none';
+      }
+      if(match) anyMatch = true;
+    });
+    cat.style.display = anyMatch ? '' : 'none';
+    if(q && anyMatch) cat.open = true;
+    if(!q) cat.open = false;
+  });
+}
+
+function toggleAllCategories(){
+  const cats = document.querySelectorAll('.menu-cat');
+  const anyClosed = Array.from(cats).some(c => !c.open);
+  cats.forEach(c => c.open = anyClosed);
+  document.getElementById('toggleAllBtn').textContent = anyClosed ? 'Alles inklappen' : 'Alles uitklappen';
+}
+
+function changeQty(id, delta){
+  const span = document.getElementById('qty-'+id);
+  let v = parseInt(span.textContent) + delta;
+  if(v < 0) v = 0;
+  span.textContent = v;
+  updateStickySummary();
+}
+function changeCustomQty(delta){
+  customQty = Math.max(0, customQty + delta);
+  document.getElementById('customQty').textContent = customQty;
+  updateStickySummary();
+}
+
+function readGroupsSelection(item){
+  let extra = 0;
+  if(item.groups && item.groups.length){
+    const parts = [];
+    item.groups.forEach((grp, gi)=>{
+      if(grp.type === 'single'){
+        const sel = document.getElementById(`grp-${item.id}-${gi}`);
+        if(sel && sel.value){
+          parts.push(sel.value);
+          const opt = grp.options.find(o=>o.name===sel.value);
+          if(opt) extra += opt.price||0;
+        }
+      } else {
+        grp.options.forEach((o,oi)=>{
+          const cb = document.getElementById(`grp-${item.id}-${gi}-${oi}`);
+          if(cb && cb.checked){ parts.push(o.name); extra += parseFloat(cb.dataset.price)||0; }
+        });
+      }
+    });
+    return { note: parts.join(', '), extra };
+  }
+  const inp = document.getElementById('note-'+item.id);
+  return { note: inp ? inp.value.trim() : '', extra: 0 };
+}
+
+function updateStickySummary(){
+  let count = 0, total = 0;
+  menu.forEach(item=>{
+    const span = document.getElementById('qty-'+item.id);
+    if(!span) return;
+    const qty = parseInt(span.textContent) || 0;
+    if(qty > 0){
+      const { extra } = readGroupsSelection(item);
+      count += qty;
+      total += (item.price + extra) * qty;
+    }
+  });
+  const customPrice = parseEuro(document.getElementById('customPrice').value);
+  if(customQty > 0){ count += customQty; total += customPrice * customQty; }
+  const el = document.getElementById('stickySummary');
+  el.textContent = count > 0 ? `${count} item(s) · ${euro(total)}` : 'Nog niets gekozen';
+}
+
+const ORDER_EMAIL = 'tkruisselbrink@legamaster.com';
+// Vul hier de Web-app-URL van je Google Apps Script in zodra je die hebt (stap 5).
+// Bijv: 'https://script.google.com/macros/s/AKfycb.../exec'
+const SHEET_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzmJqZnSUPVyw0XCGT3opj4foHIl7ZXh8MeOlOo1OZDph277bF9IEd8j056NSQc2NCAyg/exec';
+
+// Apps Script Web Apps block plain fetch() POSTs at Google's edge (no CORS support),
+// so we submit via a real hidden form instead — same as a browser navigating there.
+function submitToSheetWebhook(url, dataObj){
+  const iframeName = 'sheet_submit_' + Date.now();
+  const iframe = document.createElement('iframe');
+  iframe.name = iframeName;
+  iframe.style.display = 'none';
+  document.body.appendChild(iframe);
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = url;
+  form.target = iframeName;
+  form.style.display = 'none';
+
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'payload';
+  input.value = JSON.stringify(dataObj);
+  form.appendChild(input);
+
+  document.body.appendChild(form);
+  form.submit();
+
+  setTimeout(()=>{ form.remove(); iframe.remove(); }, 5000);
+  return true;
+}
+
+function copyField(id){
+  const el = document.getElementById(id);
+  el.removeAttribute('readonly');
+  el.select();
+  el.setAttribute('readonly', 'readonly');
+  navigator.clipboard.writeText(el.value).then(()=>{
+    const btn = event.target;
+    const old = btn.textContent;
+    btn.textContent = 'Gekopieerd!';
+    setTimeout(()=> btn.textContent = old, 1500);
+  }).catch(()=>{ /* clipboard blocked; the text is still selected for manual copy */ });
+}
+
+function buildOrderMailBody(name, items, subtotal){
+  const lines = [];
+  lines.push('Vrijdaglunch bestelling');
+  lines.push(`Naam: ${name}`);
+  lines.push(`Datum: ${fmtDate(roundKey)}`);
+  lines.push('');
+  items.forEach(i=>{
+    const noteStr = i.note ? ` (${i.note})` : '';
+    lines.push(`- ${i.qty}x ${i.name}${noteStr} - ${euro(i.price*i.qty)}`);
+  });
+  lines.push('');
+  lines.push(`Totaal: ${euro(subtotal)}`);
+  return lines.join('\n');
+}
+
+async function submitOrder(){
+  const name = document.getElementById('personName').value.trim();
+  if(!name){ await showAlert('Vul eerst je naam in.'); return; }
+
+  const items = [];
+  menu.forEach(item=>{
+    const qty = parseInt(document.getElementById('qty-'+item.id).textContent);
+    if(qty > 0){
+      const { note, extra } = readGroupsSelection(item);
+      items.push({ name:item.name, price:item.price+extra, qty, note });
+    }
+  });
+  const customName = document.getElementById('customName').value.trim();
+  const customPrice = parseEuro(document.getElementById('customPrice').value);
+  if(customName && customQty > 0){
+    items.push({ name:customName, price:customPrice, qty:customQty, note:'' });
+  }
+
+  if(items.length === 0){ await showAlert('Kies minstens 1 item.'); return; }
+
+  const subtotal = items.reduce((s,i)=> s + i.price*i.qty, 0);
+  const subject = `Vrijdaglunch bestelling - ${name} - ${fmtDate(roundKey)}`;
+  const body = buildOrderMailBody(name, items, subtotal);
+  const mailtoUrl = `mailto:${ORDER_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  let sheetOk = false;
+  if(SHEET_WEBHOOK_URL){
+    try{
+      sheetOk = submitToSheetWebhook(SHEET_WEBHOOK_URL, { name, items, subtotal, roundDate: fmtDate(roundKey) });
+    } catch(e){ sheetOk = false; }
+  }
+
+  // Mailto + copy-paste fallback only when the Sheet write didn't happen (not configured, or failed).
+  if(!sheetOk){
+    try{ window.open(mailtoUrl, '_blank'); } catch(e){ /* ignore */ }
+    document.getElementById('fallbackEmail').textContent = ORDER_EMAIL;
+    document.getElementById('fallbackSubject').value = subject;
+    document.getElementById('fallbackBody').value = body;
+    document.getElementById('fallbackMailLink').href = mailtoUrl;
+    document.getElementById('mailFallback').style.display = 'block';
+    document.getElementById('mailFallback').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  } else {
+    document.getElementById('mailFallback').style.display = 'none';
+  }
+
+  const box = document.getElementById('confirmBox');
+  box.textContent = sheetOk
+    ? `Bestelling (${euro(subtotal)}) verstuurd naar de bestellijst. Klaar!`
+    : `Bestelling (${euro(subtotal)}) klaargezet — check of je mailprogramma is geopend, of gebruik de tekst hieronder.`;
+  box.classList.add('show');
+  menu.forEach(item=>{
+    const s = document.getElementById('qty-'+item.id); if(s) s.textContent = '0';
+    if(item.groups && item.groups.length){
+      item.groups.forEach((grp, gi)=>{
+        if(grp.type === 'single'){
+          const sel = document.getElementById(`grp-${item.id}-${gi}`);
+          if(sel) sel.value = '';
+        } else {
+          grp.options.forEach((o,oi)=>{
+            const cb = document.getElementById(`grp-${item.id}-${gi}-${oi}`);
+            if(cb) cb.checked = false;
+          });
+        }
+      });
+    }
+  });
+  customQty = 0;
+  document.getElementById('customQty').textContent = '0';
+  document.getElementById('customName').value = '';
+  document.getElementById('customPrice').value = '';
+  updateStickySummary();
+}
+
+// ---------- overview ----------
+function parseOrderEmails(raw){
+  if(!raw || !raw.trim()) return [];
+  const blocks = raw.split(/(?=Vrijdaglunch bestelling)/gi).map(b=>b.trim()).filter(Boolean);
+  const orders = [];
+  blocks.forEach(block=>{
+    const nameMatch = block.match(/Naam:\s*(.+)/i);
+    if(!nameMatch) return;
+    const name = nameMatch[1].trim();
+    const totaalMatch = block.match(/Totaal:\s*€?\s*([\d.,]+)/i);
+    const items = [];
+    const itemRegex = /^-\s*(\d+)\s*x\s+(.+?)\s+-\s+€\s*[\d.,]+\s*$/gim;
+    let m;
+    while((m = itemRegex.exec(block)) !== null){
+      items.push({ qty: parseInt(m[1]), name: m[2].trim() });
+    }
+    const subtotal = totaalMatch ? parseEuro(totaalMatch[1]) : items.reduce((s,i)=>s+i.qty,0);
+    orders.push({ name, items, subtotal });
+  });
+  return orders;
+}
+
+function renderOverview(orders){
+  const tableEl = document.getElementById('overviewTable');
+  if(orders.length === 0){
+    tableEl.innerHTML = '<div class="empty-note">Nog geen bestellingen herkend. Plak hierboven de mail-tekst en klik op "Bestellingen herkennen".</div>';
+  } else {
+    let grand = 0;
+    let rows = '';
+    orders.forEach(o=>{
+      const summary = o.items.map(i => `${i.qty}× ${i.name}`).join(', ');
+      rows += `<tr><td>${o.name}</td><td>${summary}</td><td class="amt">${euro(o.subtotal)}</td></tr>`;
+      grand += o.subtotal;
+    });
+    rows += `<tr class="grand"><td></td><td>Totaal</td><td class="amt">${euro(grand)}</td></tr>`;
+    tableEl.innerHTML = `<table><tr><th>Naam</th><th>Bestelling</th><th class="amt">Bedrag</th></tr>${rows}</table>`;
+  }
+
+  const agg = {};
+  orders.forEach(o=> o.items.forEach(i=>{
+    agg[i.name] = (agg[i.name] || 0) + i.qty;
+  }));
+  const aggEl = document.getElementById('aggList');
+  const aggKeys = Object.keys(agg);
+  aggEl.innerHTML = aggKeys.length
+    ? aggKeys.map(k => `<div class="agg-row"><span>${k}</span><span>${agg[k]}×</span></div>`).join('')
+    : '<div class="empty-note">Nog niets te bestellen.</div>';
+
+  const grandTotal = orders.reduce((s,o)=>s+o.subtotal,0);
+  let tikkie = `🍟 Vrijdaglunch bij Anderz — ${fmtDate(roundKey)}\n\n`;
+  orders.forEach(o=>{ tikkie += `- ${o.name}: ${euro(o.subtotal)}\n`; });
+  tikkie += `\nTotaal: ${euro(grandTotal)}\nTik je bedrag even over, graag voor maandag! 🙏`;
+  document.getElementById('tikkieText').value = orders.length ? tikkie : '';
+}
+
+async function parseAndShowOverview(){
+  roundKey = await ensureCurrentRound();
+  document.getElementById('roundLabel').textContent = fmtDate(roundKey);
+  const raw = document.getElementById('ordersPaste').value;
+  const orders = parseOrderEmails(raw);
+  if(raw.trim() && orders.length === 0){
+    await showAlert('Kon geen bestellingen herkennen in de geplakte tekst. Zorg dat je de volledige mailtekst plakt, inclusief "Naam:" en "Totaal:" regels.');
+  }
+  renderOverview(orders);
+}
+
+function copyTikkie(){
+  const ta = document.getElementById('tikkieText');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn = event.target;
+    const old = btn.textContent;
+    btn.textContent = 'Gekopieerd!';
+    setTimeout(()=> btn.textContent = old, 1500);
+  });
+}
+
+async function startNewRound(){
+  const d = document.getElementById('newRoundDate').value;
+  if(!d) return;
+  await sSet('anderz-round-active', d, true);
+  roundKey = d;
+  document.getElementById('roundLabel').textContent = fmtDate(roundKey);
+  renderOverview(parseOrderEmails(document.getElementById('ordersPaste').value));
+}
+
+// ---------- menu management ----------
+function renderMenuEditList(){
+  const el = document.getElementById('menuEditList');
+  el.innerHTML = '';
+  if(menu.length === 0){
+    el.innerHTML = '<div class="empty-note">Nog geen items. Plak de menukaart hierboven of voeg hieronder handmatig toe.</div>';
+    return;
+  }
+  menu.forEach(item=>{
+    const row = document.createElement('div');
+    row.className = 'menu-edit-row';
+    row.innerHTML = `
+      <input type="text" value="${item.name}" onchange="updateMenuItem('${item.id}','name',this.value)">
+      <input type="text" value="${item.price.toFixed(2).replace('.',',')}" onchange="updateMenuItem('${item.id}','price',this.value)">
+      <input type="text" value="${item.category||''}" placeholder="Categorie" onchange="updateMenuItem('${item.id}','category',this.value)">
+      <button class="del-btn" onclick="deleteMenuItem('${item.id}')">✕</button>
+    `;
+    el.appendChild(row);
+    const choicesRow = document.createElement('div');
+    choicesRow.className = 'choices-row';
+    choicesRow.innerHTML = `
+      <label>2e keuze-opties (komma-gescheiden, leeg = vrij tekstveld)</label>
+      <input type="text" value="${item.choices||''}" placeholder="bijv. Stokbrood, Zacht bolletje" onchange="updateMenuItem('${item.id}','choices',this.value)">
+    `;
+    el.appendChild(choicesRow);
+  });
+}
+
+async function saveMenu(){
+  await sSet('anderz-menu', JSON.stringify(menu), true);
+  renderMenuList();
+}
+
+function updateMenuItem(id, field, value){
+  const item = menu.find(m=>m.id===id);
+  if(!item) return;
+  item[field] = field === 'price' ? parseEuro(value) : value;
+  saveMenu();
+}
+
+function deleteMenuItem(id){
+  menu = menu.filter(m=>m.id!==id);
+  saveMenu();
+  renderMenuEditList();
+}
+
+function addMenuItem(){
+  const name = document.getElementById('addName').value.trim();
+  const price = parseEuro(document.getElementById('addPrice').value);
+  const category = document.getElementById('addCategory').value.trim();
+  if(!name){ return; }
+  menu.push({ id: 'm'+Date.now()+Math.floor(Math.random()*1000), name, price, category });
+  document.getElementById('addName').value = '';
+  document.getElementById('addPrice').value = '';
+  document.getElementById('addCategory').value = '';
+  saveMenu();
+  renderMenuEditList();
+}
+
+function isPriceLine(l){ return /^€\s?-?[\d.,]+$/.test(l.trim()); }
+
+async function parseMenuPaste(){
+  const raw = document.getElementById('menuPaste').value;
+  const lines = raw.split(/\r?\n/)
+    .map(l => l.replace(/\s*<[^>]*>\s*/g,' ').replace(/\t/g,' ').replace(/\s+/g,' ').trim())
+    .filter(l => l.length > 0 && !/^https?:\/\//i.test(l));
+
+  const found = [];
+  let currentCategory = '';
+  let i = 0;
+  while(i < lines.length){
+    if(isPriceLine(lines[i])){ i++; continue; }
+    if(lines[i].toLowerCase() === 'niet op voorraad'){ i++; continue; }
+    if(i+1 < lines.length && isPriceLine(lines[i+1]) && lines[i].length < 80){
+      found.push({ id:'m'+Date.now()+Math.floor(Math.random()*10000)+i, name:lines[i], price:parseEuro(lines[i+1]), category:currentCategory });
+      i += 2; continue;
+    }
+    if(i+2 < lines.length && lines[i+1] === lines[i] && isPriceLine(lines[i+2])){
+      found.push({ id:'m'+Date.now()+Math.floor(Math.random()*10000)+i, name:lines[i], price:parseEuro(lines[i+2]), category:currentCategory });
+      i += 3; continue;
+    }
+    currentCategory = lines[i];
+    i++;
+  }
+  if(found.length === 0){
+    await showAlert('Kon geen prijzen herkennen in de geplakte tekst. Voeg items dan handmatig toe hieronder.');
+    return;
+  }
+  menu = menu.concat(found);
+  saveMenu();
+  renderMenuEditList();
+  document.getElementById('menuPaste').value = '';
+}
+
+init();
+</script>
+</body>
+</html>
