@@ -34,6 +34,7 @@
     #${PREFIX}log .row{ padding:4px 0; border-bottom:1px solid #333; display:flex; justify-content:space-between; gap:6px; }
     #${PREFIX}log .ok{ color:#8fd18a; }
     #${PREFIX}log .fail{ color:#e08a8a; }
+    #${PREFIX}log .warn{ color:#e0c060; }
     #${PREFIX}log .pending{ color:#999; }
     #${PREFIX}badge{
       position:fixed; bottom:16px; left:16px; z-index:2147483000;
@@ -64,6 +65,7 @@
 
   function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
   function normalize(s){ return (s||'').trim().toLowerCase().replace(/\.+$/,'').replace(/\s+/g,' '); }
+  function normalizeLoose(s){ return normalize(s).replace(/\s*saus\.?$/,'').trim(); }
 
   function logRow(text){
     const log = document.getElementById(PREFIX + 'log');
@@ -74,10 +76,11 @@
     log.scrollTop = log.scrollHeight;
     return row;
   }
-  function updateRow(row, ok, note){
+  function updateRow(row, status, note){
     const s = row.querySelector('span:last-child');
-    s.className = ok ? 'ok' : 'fail';
-    s.textContent = (ok ? '✓' : '✕ ') + (note || (ok ? '' : ''));
+    s.className = status;
+    const icon = status === 'ok' ? '✓' : status === 'warn' ? '⚠' : '✕';
+    s.textContent = icon + (note ? ' ' + note : '');
   }
 
   function parseSheetRows(raw){
@@ -145,37 +148,39 @@
     const row = logRow(`${item.qty}x ${item.name}${item.note ? ' ('+item.note+')' : ''}`);
 
     const card = findProductCard(item.name);
-    if(!card){ updateRow(row, false, 'niet gevonden op pagina'); return; }
+    if(!card){ updateRow(row, 'fail', 'niet gevonden op pagina'); return; }
 
     const addBtn = card.querySelector('.add-to-cart');
-    if(!addBtn){ updateRow(row, false, 'geen +knop gevonden'); return; }
+    if(!addBtn){ updateRow(row, 'fail', 'geen +knop gevonden'); return; }
     addBtn.click();
     await sleep(500);
 
+    let optionWarning = '';
     const modal = document.querySelector('.modal.additionals.modal-show');
     if(modal){
       if(item.note){
         const targetNote = normalize(item.note);
+        const targetLoose = normalizeLoose(item.note);
         const labels = Array.from(modal.querySelectorAll('li.cell.small label'));
         let match = labels.find(l => normalize(l.textContent) === targetNote);
         if(!match) match = labels.find(l => normalize(l.textContent).includes(targetNote) || targetNote.includes(normalize(l.textContent)));
+        if(!match) match = labels.find(l => normalizeLoose(l.textContent) === targetLoose);
+        if(!match) match = labels.find(l => normalizeLoose(l.textContent).includes(targetLoose) || targetLoose.includes(normalizeLoose(l.textContent)));
         if(match){ match.click(); await sleep(200); }
         else {
-          const cancelBtn = modal.querySelector('.button-cancel');
-          if(cancelBtn) cancelBtn.click();
-          updateRow(row, false, `optie "${item.note}" niet gevonden`);
-          return;
+          // Don't skip the whole item over a missing modifier — add it anyway and flag for a manual check.
+          optionWarning = `optie "${item.note}" niet gevonden — controleer handmatig`;
         }
       }
       const confirmBtn = modal.querySelector('.button-add');
-      if(!confirmBtn){ updateRow(row, false, 'geen bevestigknop'); return; }
+      if(!confirmBtn){ updateRow(row, 'fail', 'geen bevestigknop'); return; }
       confirmBtn.click();
       await sleep(500);
     }
 
     if(item.qty > 1){
       await sleep(300);
-      const cartItem = findCartItem(item.name, item.note);
+      const cartItem = findCartItem(item.name, optionWarning ? '' : item.note);
       if(cartItem){
         const inc = cartItem.querySelector('.increment');
         if(inc){
@@ -188,7 +193,7 @@
       }
     }
 
-    updateRow(row, true);
+    updateRow(row, optionWarning ? 'warn' : 'ok', optionWarning);
   }
 
   async function run(){
