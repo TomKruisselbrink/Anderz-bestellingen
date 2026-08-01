@@ -1,4 +1,4 @@
-/* Anderz Auto-invuller — bookmarklet
+/* Anderz Auto-invuller — bookmarklet (v2, gebaseerd op de echte site-structuur)
    Plak de verzamellijst (gekopieerd vanuit de Vrijdaglunch-tool) en laat 'm
    automatisch de juiste producten + aantallen + varianten in het mandje zetten
    op bestellen.eetsalonanderz.nl. Rondt NOOIT zelf af/betaalt niet — dat doe jij.
@@ -40,7 +40,6 @@
       background:#b23a2e; color:#fff; font:12px -apple-system,Segoe UI,sans-serif;
       padding:8px 12px; border-radius:20px; box-shadow:0 4px 14px rgba(0,0,0,.4); cursor:pointer;
     }
-    .${PREFIX}found-flash{ outline:3px solid #4da3ff !important; }
   `;
   document.head.appendChild(style);
 
@@ -48,11 +47,12 @@
   panel.id = PREFIX + 'panel';
   panel.innerHTML = `
     <h3>🛒 Anderz Auto-invuller</h3>
-    <textarea id="${PREFIX}input" placeholder="Plak hier de verzamellijst (Kopieer voor auto-invullen)"></textarea>
+    <textarea id="${PREFIX}input" placeholder="Plak hier de verzamellijst (Kopieer voor auto-invullen), óf plak direct de rijen uit je Google Sheet"></textarea>
+    <div class="hint" style="margin-top:0">Beide formats werken: de opgetelde lijst uit de lunchtool, of losse Sheet-rijen (per persoon) — die worden dan automatisch bij elkaar opgeteld.</div>
     <button class="primary" id="${PREFIX}start">Start invullen</button>
     <button id="${PREFIX}stop" style="display:none">Stop</button>
     <div id="${PREFIX}log"></div>
-    <div class="hint">Dit klikt zelf producten en varianten aan in het mandje. Het rondt nooit zelf af of betaalt — dat blijft altijd bij jou. Controleer het mandje na afloop.</div>
+    <div class="hint">Zet producten en varianten in het mandje. Rondt nooit zelf af of betaalt — dat blijft altijd bij jou. Controleer het mandje na afloop.</div>
   `;
   document.body.appendChild(panel);
 
@@ -63,22 +63,51 @@
   document.body.appendChild(badge);
 
   function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  function normalize(s){ return (s||'').trim().toLowerCase().replace(/\.+$/,'').replace(/\s+/g,' '); }
 
-  function logRow(text, status){
+  function logRow(text){
     const log = document.getElementById(PREFIX + 'log');
     const row = document.createElement('div');
     row.className = 'row';
-    row.innerHTML = `<span>${text}</span><span class="${status}">${status === 'ok' ? '✓' : status === 'fail' ? '✕' : '…'}</span>`;
+    row.innerHTML = `<span>${text}</span><span class="pending">…</span>`;
     log.appendChild(row);
     log.scrollTop = log.scrollHeight;
     return row;
   }
-  function updateRow(row, status){
-    row.querySelector('span:last-child').className = status;
-    row.querySelector('span:last-child').textContent = status === 'ok' ? '✓' : status === 'fail' ? '✕' : '…';
+  function updateRow(row, ok, note){
+    const s = row.querySelector('span:last-child');
+    s.className = ok ? 'ok' : 'fail';
+    s.textContent = (ok ? '✓' : '✕ ') + (note || (ok ? '' : ''));
+  }
+
+  function parseSheetRows(raw){
+    const lines = raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    const agg = {};
+    const order = [];
+    lines.forEach(line=>{
+      const cols = line.split('\t').map(c=>c.trim());
+      if(cols.length < 4) return;
+      if(cols[0].toLowerCase() === 'tijdstip') return; // header row
+      const name = cols[1];
+      if(!name || /—\s*totaal/i.test(name)) return; // skip TOTAAL rows and blanks
+      const qty = parseInt(cols[2]);
+      const itemName = cols[3];
+      const note = cols[4] || '';
+      if(!qty || !itemName) return;
+      const key = itemName + '::' + note;
+      if(!(key in agg)){ agg[key] = 0; order.push(key); }
+      agg[key] += qty;
+    });
+    return order.map(key => {
+      const idx = key.indexOf('::');
+      return { qty: agg[key], name: key.slice(0, idx), note: key.slice(idx+2) };
+    });
   }
 
   function parseList(raw){
+    if(raw.includes('\t')){
+      return parseSheetRows(raw);
+    }
     return raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
       const m = line.match(/^(\d+)\s*x\s+(.+?)(?:::(.*))?$/i);
       if(!m) return null;
@@ -86,77 +115,80 @@
     }).filter(Boolean);
   }
 
-  // Find the smallest element whose own visible text matches the product name closely.
   function findProductCard(name){
-    const target = name.toLowerCase().trim();
-    const all = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,span,div,p'));
-    let best = null, bestLen = Infinity;
-    for(const el of all){
-      if(el.children.length > 2) continue; // prefer leaf-ish text nodes
-      const text = (el.textContent || '').trim().toLowerCase();
-      if(!text) continue;
-      if(text === target || text.startsWith(target)){
-        if(text.length < bestLen){ best = el; bestLen = text.length; }
-      }
-    }
-    return best;
-  }
-
-  function findAddButton(fromEl){
-    // Walk up a few ancestor levels looking for a clickable "+" / add control nearby.
-    let node = fromEl;
-    for(let depth = 0; depth < 6 && node; depth++){
-      const candidates = node.querySelectorAll('button, [role="button"], a');
-      for(const c of candidates){
-        const t = (c.textContent || '').trim();
-        const aria = (c.getAttribute('aria-label') || '').toLowerCase();
-        if(t === '+' || aria.includes('toevoegen') || aria.includes('add')) return c;
-      }
-      node = node.parentElement;
-    }
-    return null;
-  }
-
-  // After clicking add, a variant modal may appear. Try to find and select an
-  // option matching `note`, then click a confirm/add button inside the modal.
-  async function handlePossibleModal(note){
-    await sleep(400);
-    // Heuristic: look for a newly-visible container with many button/option-like children.
-    const modalCandidates = Array.from(document.querySelectorAll('[role="dialog"], .modal, [class*="modal"], [class*="Modal"]'));
-    let modal = modalCandidates.find(m => m.offsetParent !== null) || null;
-    if(!modal){
-      // Fallback: no modal detected, nothing more to do.
-      return true;
-    }
-    if(note){
-      const options = Array.from(modal.querySelectorAll('button, [role="button"], label, div'));
-      const match = options.find(o => (o.textContent||'').trim().toLowerCase() === note.toLowerCase());
-      if(match){ match.click(); await sleep(200); }
-    }
-    // Try to find a confirm/add-to-cart button inside the modal.
-    const confirmBtn = Array.from(modal.querySelectorAll('button')).find(b=>{
-      const t = (b.textContent||'').toLowerCase();
-      return t.includes('toevoegen') || t.includes('bestellen') || t.includes('mandje');
+    const target = normalize(name);
+    const cards = Array.from(document.querySelectorAll('li.cell.product'));
+    let card = cards.find(c => {
+      const h3 = c.querySelector('footer.card-footer h3');
+      return h3 && normalize(h3.textContent) === target;
     });
-    if(confirmBtn){ confirmBtn.click(); await sleep(300); }
-    return true;
+    if(!card){
+      card = cards.find(c => {
+        const h3 = c.querySelector('footer.card-footer h3');
+        return h3 && normalize(h3.textContent).startsWith(target);
+      });
+    }
+    return card;
+  }
+
+  function findCartItem(name, note){
+    const items = Array.from(document.querySelectorAll('.cart-item'));
+    const targetName = normalize(name);
+    const targetNote = normalize(note);
+    return items.find(it=>{
+      const t = normalize(it.textContent);
+      return t.includes(targetName) && (!targetNote || t.includes(targetNote));
+    });
   }
 
   async function processItem(item){
-    const row = logRow(`${item.qty}x ${item.name}${item.note ? ' ('+item.note+')' : ''}`, 'pending');
+    const row = logRow(`${item.qty}x ${item.name}${item.note ? ' ('+item.note+')' : ''}`);
+
     const card = findProductCard(item.name);
-    if(!card){ updateRow(row, 'fail'); return; }
-    card.classList.add(PREFIX + 'found-flash');
-    for(let i = 0; i < item.qty; i++){
-      if(stopRequested) break;
-      const btn = findAddButton(card);
-      if(!btn){ updateRow(row, 'fail'); return; }
-      btn.click();
-      await handlePossibleModal(item.note);
-      await sleep(300);
+    if(!card){ updateRow(row, false, 'niet gevonden op pagina'); return; }
+
+    const addBtn = card.querySelector('.add-to-cart');
+    if(!addBtn){ updateRow(row, false, 'geen +knop gevonden'); return; }
+    addBtn.click();
+    await sleep(500);
+
+    const modal = document.querySelector('.modal.additionals.modal-show');
+    if(modal){
+      if(item.note){
+        const targetNote = normalize(item.note);
+        const labels = Array.from(modal.querySelectorAll('li.cell.small label'));
+        let match = labels.find(l => normalize(l.textContent) === targetNote);
+        if(!match) match = labels.find(l => normalize(l.textContent).includes(targetNote) || targetNote.includes(normalize(l.textContent)));
+        if(match){ match.click(); await sleep(200); }
+        else {
+          const cancelBtn = modal.querySelector('.button-cancel');
+          if(cancelBtn) cancelBtn.click();
+          updateRow(row, false, `optie "${item.note}" niet gevonden`);
+          return;
+        }
+      }
+      const confirmBtn = modal.querySelector('.button-add');
+      if(!confirmBtn){ updateRow(row, false, 'geen bevestigknop'); return; }
+      confirmBtn.click();
+      await sleep(500);
     }
-    card.classList.remove(PREFIX + 'found-flash');
-    updateRow(row, 'ok');
+
+    if(item.qty > 1){
+      await sleep(300);
+      const cartItem = findCartItem(item.name, item.note);
+      if(cartItem){
+        const inc = cartItem.querySelector('.increment');
+        if(inc){
+          for(let i = 1; i < item.qty; i++){
+            if(stopRequested) break;
+            inc.click();
+            await sleep(200);
+          }
+        }
+      }
+    }
+
+    updateRow(row, true);
   }
 
   async function run(){
@@ -186,3 +218,4 @@
   }
   window.__afDeactivate = deactivate;
 })();
+
