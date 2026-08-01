@@ -982,6 +982,21 @@ async function submitOrder(){
   const name = document.getElementById('personName').value.trim();
   if(!name){ await showAlert('Vul eerst je naam in.'); return; }
 
+  const missingChoice = [];
+  menu.forEach(item=>{
+    const qty = parseInt(document.getElementById('qty-'+item.id).textContent);
+    if(qty <= 0) return;
+    const choiceList = (item.choices || '').split(',').map(s=>s.trim()).filter(Boolean);
+    if(choiceList.length){
+      const sel = document.getElementById('note-'+item.id);
+      if(!sel || !sel.value) missingChoice.push(item.name);
+    }
+  });
+  if(missingChoice.length){
+    await showAlert(`Kies eerst een optie voor: ${missingChoice.join(', ')}.`);
+    return;
+  }
+
   const items = [];
   menu.forEach(item=>{
     const qty = parseInt(document.getElementById('qty-'+item.id).textContent);
