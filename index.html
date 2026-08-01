@@ -90,7 +90,7 @@
 
   .round-banner{
     display:flex; justify-content:center; align-items:center; gap:10px;
-    background:#211f1c; border:1px dashed var(--panel-border); border-radius:8px;
+    background:var(--bg-desk); border:1px solid var(--bg-desk); border-radius:8px;
     padding:10px 14px; font-size:12.5px; color:var(--muted); margin-bottom:16px;
   }
   .round-banner b{ color:#f1ede4; }
@@ -288,17 +288,17 @@
     </div>
 
     <div class="panel" id="menuPanel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div style="position:relative; text-align:center; margin-bottom:10px;">
         <h2 style="margin:0">Menu</h2>
-        <button class="btn-ghost btn-sm" onclick="toggleAllCategories()" id="toggleAllBtn">Alles uitklappen</button>
+        <button class="btn-ghost btn-sm" onclick="toggleAllCategories()" id="toggleAllBtn" style="position:absolute; top:0; right:0;">Alles uitklappen</button>
       </div>
       <input type="text" id="menuSearch" placeholder="Zoek een gerecht..." oninput="filterMenu()" style="margin-bottom:12px;">
       <div class="menu-layout">
         <nav id="catNav" class="cat-nav"></nav>
         <div id="menuList" class="menu-list-col"></div>
       </div>
-      <h3>Iets anders?</h3>
-      <div class="menu-row">
+      <h3 style="display:none">Iets anders?</h3>
+      <div class="menu-row" style="display:none">
         <input type="text" id="customName" class="nm" placeholder="Typ zelf een gerecht..." style="flex:1; margin-right:8px;">
         <input type="text" id="customPrice" class="pr" placeholder="€" style="width:70px;" oninput="updateStickySummary()">
         <div class="qty">
@@ -309,7 +309,7 @@
       </div>
     </div>
 
-    <div class="who-filled">Bij "Bestelling doorgeven" opent je eigen mailprogramma met een kant-en-klare mail naar Tom. Werkt dat niet, dan verschijnt hieronder de tekst om zelf te kopiëren en te plakken.</div>
+    <div class="who-filled" style="display:none">Bij "Bestelling doorgeven" opent je eigen mailprogramma met een kant-en-klare mail naar Tom. Werkt dat niet, dan verschijnt hieronder de tekst om zelf te kopiëren en te plakken.</div>
 
     <div class="panel" id="mailFallback" style="display:none">
       <h2>Mail niet vanzelf geopend?</h2>
@@ -516,6 +516,9 @@ function nextFriday(){
   d.setDate(d.getDate() + diff);
   return d.toISOString().slice(0,10);
 }
+function today(){
+  return new Date().toISOString().slice(0,10);
+}
 function fmtDate(iso){
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('nl-NL', { weekday:'long', day:'numeric', month:'long' });
@@ -571,9 +574,9 @@ document.querySelectorAll('.tab').forEach(tab=>{
 // ---------- init ----------
 async function ensureCurrentRound(){
   let rk = await sGet('anderz-round-active', true);
-  const today = new Date().toISOString().slice(0,10);
-  if(!rk || rk < today){
-    rk = nextFriday();
+  const todayStr = today();
+  if(!rk || rk < todayStr){
+    rk = todayStr;
     await sSet('anderz-round-active', rk, true);
   }
   return rk;
