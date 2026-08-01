@@ -180,8 +180,10 @@
     }
     if(!selected){
       panel.innerHTML = `<h3>🎨 Visual Editor</h3><p class="hint">Klik op een element op de pagina om het te bewerken. Klik-en-sleep om te verplaatsen.</p>
-        <button class="primary" id="${PREFIX}exportBtn">Exporteer wijzigingen</button>`;
+        <button class="primary" id="${PREFIX}exportBtn">Exporteer wijzigingen</button>
+        <button id="${PREFIX}fullPageBtn2">Exporteer volledige pagina (HTML)</button>`;
       document.getElementById(PREFIX+'exportBtn').onclick = showExport;
+      document.getElementById(PREFIX+'fullPageBtn2').onclick = showFullPageExport;
       return;
     }
 
@@ -250,6 +252,14 @@
     document.getElementById(PREFIX+'editTextBtn').onclick = () => {
       selected.setAttribute('contenteditable', 'true');
       selected.focus();
+      const target = selected;
+      const onBlur = () => {
+        const s = getSelector(target);
+        if(!changes.has(s)) changes.set(s, { css:{}, tx:0, ty:0 });
+        changes.get(s).text = target.textContent;
+        target.removeEventListener('blur', onBlur);
+      };
+      target.addEventListener('blur', onBlur);
     };
     document.getElementById(PREFIX+'alignLeft').onclick = () => alignElement('left');
     document.getElementById(PREFIX+'alignCenter').onclick = () => alignElement('center');
@@ -269,22 +279,38 @@
     document.getElementById(PREFIX+'exportBtn').onclick = showExport;
   }
 
+  function describeElement(el){
+    const tag = el.tagName.toLowerCase();
+    const cls = el.className && typeof el.className === 'string'
+      ? '.' + el.className.split(' ').filter(c => c && !c.startsWith(PREFIX)).join('.')
+      : '';
+    let text = (el.textContent || '').trim().replace(/\s+/g,' ').slice(0, 40);
+    if(el.textContent && el.textContent.trim().length > 40) text += '…';
+    return `${tag}${cls === '.' ? '' : cls}${text ? ` "${text}"` : ''}`;
+  }
+
   function showExport(){
     let css = '';
     changes.forEach((val, sel) => {
       const props = Object.assign({}, val.css);
       if(val.tx || val.ty) props['transform'] = `translate(${Math.round(val.tx)}px, ${Math.round(val.ty)}px)`;
       const propLines = Object.entries(props).map(([k,v]) => `  ${k}: ${v};`).join('\n');
-      if(propLines) css += `${sel} {\n${propLines}\n}\n\n`;
+      const el = document.querySelector(sel);
+      const desc = el ? describeElement(el) : '';
+      let block = '';
+      if(propLines) block += `/* ${desc} */\n${sel} {\n${propLines}\n}\n`;
+      if(val.text !== undefined) block += `/* ${desc} — tekst gewijzigd naar: */\n/* "${val.text.replace(/\s+/g,' ').trim()}" */\n`;
+      if(block) css += block + '\n';
     });
     if(!css) css = '/* Nog geen wijzigingen gemaakt */';
 
     const panel = document.getElementById(PREFIX+'panel');
     panel.innerHTML = `
       <h3>📋 Wijzigingen</h3>
-      <p class="hint">Kopieer dit blok en stuur het naar Claude, samen met de naam van de pagina — dan wordt het in het echte bestand verwerkt.</p>
+      <p class="hint">Kopieer dit blok en stuur het naar Claude, samen met de naam van de pagina — dan wordt het in het echte bestand verwerkt. Elk blok heeft nu een herkenbare omschrijving erboven.</p>
       <textarea readonly id="${PREFIX}exportArea">${css}</textarea>
       <button class="primary" id="${PREFIX}copyBtn">Kopieer</button>
+      <button id="${PREFIX}fullPageBtn">Exporteer volledige pagina (HTML)</button>
       <button id="${PREFIX}backBtn">Terug</button>
     `;
     document.getElementById(PREFIX+'copyBtn').onclick = () => {
@@ -292,7 +318,34 @@
       ta.select();
       navigator.clipboard.writeText(ta.value).catch(()=>{});
     };
+    document.getElementById(PREFIX+'fullPageBtn').onclick = showFullPageExport;
     document.getElementById(PREFIX+'backBtn').onclick = renderPanel;
+  }
+
+  function showFullPageExport(){
+    const clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('.'+PREFIX+'hover-outline, .'+PREFIX+'selected-outline').forEach(el=>{
+      el.classList.remove(PREFIX+'hover-outline', PREFIX+'selected-outline');
+    });
+    const p = clone.querySelector('#'+PREFIX+'panel'); if(p) p.remove();
+    const b = clone.querySelector('#'+PREFIX+'badge'); if(b) b.remove();
+    const s = clone.querySelector('#'+PREFIX+'style'); if(s) s.remove();
+    clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+    const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+
+    const panel = document.getElementById(PREFIX+'panel');
+    panel.innerHTML = `
+      <h3>📄 Volledige pagina</h3>
+      <p class="hint">Let op: bij pagina's die hun inhoud dynamisch met JavaScript opbouwen (zoals lijsten die uit data komen), zit hier een bevroren momentopname in — niet automatisch hetzelfde als het brontbestand. Voor zulke pagina's is de losse CSS-export (vorige scherm) veiliger.</p>
+      <textarea readonly id="${PREFIX}fullArea" style="min-height:200px;">${html.replace(/</g,'&lt;')}</textarea>
+      <button class="primary" id="${PREFIX}fullCopyBtn">Kopieer</button>
+      <button id="${PREFIX}backBtn2">Terug</button>
+    `;
+    document.getElementById(PREFIX+'fullCopyBtn').onclick = () => {
+      const ta = document.getElementById(PREFIX+'fullArea');
+      navigator.clipboard.writeText(html).catch(()=>{});
+    };
+    document.getElementById(PREFIX+'backBtn2').onclick = renderPanel;
   }
 
   // ---------- badge (deactivate button) ----------
