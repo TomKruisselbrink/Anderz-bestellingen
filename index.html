@@ -984,6 +984,7 @@ async function submitOrder(){
 
   const missingChoice = [];
   menu.forEach(item=>{
+    if(item.category !== 'Vers belegde broodjes') return;
     const qty = parseInt(document.getElementById('qty-'+item.id).textContent);
     if(qty <= 0) return;
     const choiceList = (item.choices || '').split(',').map(s=>s.trim()).filter(Boolean);
@@ -993,7 +994,7 @@ async function submitOrder(){
     }
   });
   if(missingChoice.length){
-    await showAlert(`Kies eerst een optie voor: ${missingChoice.join(', ')}.`);
+    await showAlert(`Kies eerst een broodsoort voor: ${missingChoice.join(', ')}.`);
     return;
   }
 
