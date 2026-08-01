@@ -132,6 +132,44 @@
     if(yi) yi.value = Math.round(ty);
   }
 
+  function alignElement(mode){
+    if(!selected || !selected.parentElement) return;
+    const parent = selected.parentElement;
+    const sel = getSelector(selected);
+    const c = changes.get(sel) || { css:{}, tx:0, ty:0 };
+
+    // Measure without the current x-offset, so alignment is computed from the
+    // element's natural (untranslated) position each time.
+    const savedTransform = selected.style.transform;
+    selected.style.transform = `translate(0px, ${c.ty}px)`;
+
+    if(mode === 'justify'){
+      const pr = parent.getBoundingClientRect();
+      const csEl = getComputedStyle(parent);
+      const innerWidth = pr.width - px(csEl.paddingLeft) - px(csEl.paddingRight);
+      selected.style.width = innerWidth + 'px';
+      selected.style.boxSizing = 'border-box';
+      recordChange(selected, 'width', innerWidth + 'px');
+      recordChange(selected, 'box-sizing', 'border-box');
+    }
+
+    const er = selected.getBoundingClientRect();
+    const pr = parent.getBoundingClientRect();
+    let tx = 0;
+    if(mode === 'left' || mode === 'justify'){
+      tx = pr.left - er.left;
+    } else if(mode === 'center'){
+      tx = (pr.left + pr.width/2) - (er.left + er.width/2);
+    } else if(mode === 'right'){
+      tx = pr.right - er.right;
+    }
+
+    c.tx = tx;
+    changes.set(sel, c);
+    selected.style.transform = `translate(${tx}px, ${c.ty}px)`;
+    updatePosInputs(tx, c.ty);
+  }
+
   // ---------- panel UI ----------
   function renderPanel(){
     let panel = document.getElementById(PREFIX+'panel');
@@ -180,6 +218,14 @@
         <div><label>Positie Y (px)</label><input type="number" id="${PREFIX}posy" value="${Math.round(c.ty)}"></div>
       </div>
 
+      <label>Uitlijnen (t.o.v. omliggend element)</label>
+      <div class="row" style="gap:6px;">
+        <button id="${PREFIX}alignLeft" title="Links uitlijnen" style="margin-top:0;">⯇</button>
+        <button id="${PREFIX}alignCenter" title="Centreren" style="margin-top:0;">▣</button>
+        <button id="${PREFIX}alignRight" title="Rechts uitlijnen" style="margin-top:0;">⯈</button>
+        <button id="${PREFIX}alignJustify" title="Uitvullen (volledige breedte)" style="margin-top:0;">☰</button>
+      </div>
+
       <button id="${PREFIX}editTextBtn">✏️ Tekst bewerken</button>
       <button id="${PREFIX}hideBtn">🙈 Verberg element</button>
       <button id="${PREFIX}deselectBtn">Deselecteren</button>
@@ -205,6 +251,10 @@
       selected.setAttribute('contenteditable', 'true');
       selected.focus();
     };
+    document.getElementById(PREFIX+'alignLeft').onclick = () => alignElement('left');
+    document.getElementById(PREFIX+'alignCenter').onclick = () => alignElement('center');
+    document.getElementById(PREFIX+'alignRight').onclick = () => alignElement('right');
+    document.getElementById(PREFIX+'alignJustify').onclick = () => alignElement('justify');
     document.getElementById(PREFIX+'hideBtn').onclick = () => {
       selected.style.display = 'none';
       recordChange(selected, 'display', 'none');
