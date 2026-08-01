@@ -64,6 +64,14 @@
   document.body.appendChild(badge);
 
   function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  async function waitFor(cond, timeout){
+    const start = Date.now();
+    while(Date.now() - start < timeout){
+      if(cond()) return true;
+      await sleep(50);
+    }
+    return false;
+  }
   function normalize(s){ return (s||'').trim().toLowerCase().replace(/\.+$/,'').replace(/\s+/g,' '); }
   function normalizeLoose(s){ return normalize(s).replace(/\s*saus\.?$/,'').trim(); }
 
@@ -152,8 +160,14 @@
 
     const addBtn = card.querySelector('.add-to-cart');
     if(!addBtn){ updateRow(row, 'fail', 'geen +knop gevonden'); return; }
+    const cartCountBefore = document.querySelectorAll('.cart-item').length;
     addBtn.click();
-    await sleep(500);
+    await waitFor(() =>
+      document.querySelector('.modal.additionals.modal-show') ||
+      document.querySelectorAll('.cart-item').length !== cartCountBefore,
+      4000
+    );
+    await sleep(150); // let the modal/cart finish rendering its content
 
     let optionWarning = '';
     const modal = document.querySelector('.modal.additionals.modal-show');
@@ -174,25 +188,35 @@
       }
       const confirmBtn = modal.querySelector('.button-add');
       if(!confirmBtn){ updateRow(row, 'fail', 'geen bevestigknop'); return; }
+      const cartCountBeforeConfirm = document.querySelectorAll('.cart-item').length;
       confirmBtn.click();
-      await sleep(500);
+      await waitFor(() =>
+        !document.querySelector('.modal.additionals.modal-show') &&
+        document.querySelectorAll('.cart-item').length !== cartCountBeforeConfirm,
+        4000
+      );
+      await sleep(150);
     }
 
     if(item.qty > 1){
-      await sleep(300);
-      const cartItem = findCartItem(item.name, optionWarning ? '' : item.note);
+      const cartItem = await (async () => {
+        let ci = null;
+        await waitFor(() => (ci = findCartItem(item.name, optionWarning ? '' : item.note)), 3000);
+        return ci;
+      })();
       if(cartItem){
         const inc = cartItem.querySelector('.increment');
         if(inc){
           for(let i = 1; i < item.qty; i++){
             if(stopRequested) break;
             inc.click();
-            await sleep(200);
+            await sleep(300); // stepper updates in place; a short fixed pause is reliable here
           }
         }
       }
     }
 
+    await sleep(200); // small buffer before moving to the next item
     updateRow(row, optionWarning ? 'warn' : 'ok', optionWarning);
   }
 
