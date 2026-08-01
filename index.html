@@ -28,20 +28,37 @@
   .app{ max-width:760px; margin:0 auto; }
 
   header.top{ margin-bottom:20px; }
+  .app-icon{
+    width:52px; height:52px; border-radius:14px;
+    background:linear-gradient(155deg, var(--accent), #7d271d);
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px; margin-bottom:12px;
+    box-shadow:0 4px 14px rgba(178,58,46,.4);
+  }
   .eyebrow{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-soft); font-weight:700; margin:0 0 6px; }
   h1{ font-size:24px; margin:0 0 4px; font-weight:700; letter-spacing:-0.01em; }
   .sub{ color:var(--muted); font-size:13px; margin:0; }
 
-  .tabs{ display:flex; gap:6px; margin:20px 0 16px; border-bottom:1px solid var(--panel-border); }
-  .tab{
-    padding:9px 14px; font-size:13px; font-weight:600; color:var(--muted);
-    cursor:pointer; border-radius:8px 8px 0 0; border:1px solid transparent;
+  .tabs{
+    display:flex; gap:3px; margin:22px 0 18px;
+    background:#211f1c; border:1px solid var(--panel-border);
+    border-radius:12px; padding:4px;
   }
-  .tab.active{ color:#fff; background:var(--panel); border-color:var(--panel-border); border-bottom-color:var(--panel); }
+  .tab{
+    flex:1; text-align:center;
+    padding:9px 10px; font-size:12.5px; font-weight:650; color:var(--muted);
+    cursor:pointer; border-radius:9px; border:1px solid transparent;
+    transition:background .15s ease, color .15s ease;
+  }
+  .tab.active{ color:#fff; background:var(--accent); box-shadow:0 2px 8px rgba(178,58,46,.35); }
+  .tab:not(.active):hover{ color:#e9e5dc; background:#2b2926; }
   .view{ display:none; }
   .view.active{ display:block; }
 
-  .panel{ background:var(--panel); border:1px solid var(--panel-border); border-radius:10px; padding:18px; margin-bottom:16px; }
+  .panel{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:14px;
+    padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
   .panel h2{ font-size:14px; margin:0 0 12px; color:#f1ede4; }
   .panel h3{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:16px 0 8px; }
 
@@ -57,8 +74,9 @@
     font-family:var(--sans); font-size:13px; font-weight:650; border-radius:7px;
     border:1px solid transparent; padding:9px 14px; cursor:pointer;
   }
-  .btn-primary{ background:var(--accent); color:#fff; }
-  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-primary{ background:var(--accent); color:#fff; box-shadow:0 2px 6px rgba(178,58,46,.35); }
+  .btn-primary:hover{ filter:brightness(1.08); box-shadow:0 3px 10px rgba(178,58,46,.45); }
+  .btn-primary:active{ transform:translateY(1px); }
   .btn-ghost{ background:transparent; color:var(--muted); border:1px solid var(--panel-border); }
   .btn-ghost:hover{ color:#eee; border-color:var(--muted); }
   .btn-sm{ padding:5px 9px; font-size:12px; }
@@ -116,8 +134,11 @@
 
   .sticky-bar{
     position:fixed; left:0; right:0; bottom:0; z-index:20;
-    background:#211f1c; border-top:1px solid var(--panel-border);
-    padding:10px 16px; box-shadow:0 -8px 24px rgba(0,0,0,.35);
+    background:rgba(33,31,28,.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border-top:1px solid var(--panel-border);
+    border-radius:16px 16px 0 0;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 24px rgba(0,0,0,.35);
   }
   .sticky-bar-row{
     max-width:760px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:12px;
@@ -125,15 +146,22 @@
   .sticky-bar-row span{ font-size:13px; color:#f1ede4; font-weight:600; }
   .sticky-bar .confirm{ max-width:760px; margin:0 auto 8px; }
   .menu-row{
-    display:flex; align-items:center; gap:10px; padding:8px 0;
-    border-bottom:1px solid #423e37;
+    display:flex; align-items:center; gap:10px; padding:9px 8px;
+    border-bottom:1px solid #423e37; border-radius:8px;
+    transition:background .12s ease;
   }
+  .menu-row:hover{ background:#312e29; }
   .menu-row:last-child{ border-bottom:none; }
   .menu-row .nm{ flex:1; font-size:13.5px; }
   .menu-row .pr{ font-size:12.5px; color:var(--muted); width:70px; text-align:right; }
-  .qty{ display:flex; align-items:center; gap:6px; }
-  .qty button{ width:26px; height:26px; padding:0; background:#211f1c; color:#eee; border:1px solid var(--panel-border); font-size:14px; }
-  .qty span{ min-width:16px; text-align:center; font-size:13px; }
+  .qty{ display:flex; align-items:center; gap:8px; }
+  .qty button{
+    width:26px; height:26px; padding:0; background:#211f1c; color:#eee;
+    border:1px solid var(--panel-border); font-size:14px; border-radius:50%;
+    transition:background .12s ease, border-color .12s ease;
+  }
+  .qty button:hover{ background:var(--accent); border-color:var(--accent); }
+  .qty span{ min-width:16px; text-align:center; font-size:13px; font-weight:600; }
   .note-input{ width:150px; }
   .note-input input, .note-input select{ width:100%; padding:5px 8px; font-size:12px; }
   .note-input select{ background:#211f1c; color:#e9e5dc; border:1px solid var(--panel-border); border-radius:5px; }
@@ -184,14 +212,54 @@
   .modal-message{ font-size:13px; color:var(--muted); margin:0 0 12px; line-height:1.5; }
   .modal-box input{ margin-bottom:14px; }
   .modal-btns{ display:flex; justify-content:flex-end; gap:8px; }
+
+  .modal-box.cart-box{ max-width:400px; max-height:80vh; display:flex; flex-direction:column; }
+  .cart-trigger{ cursor:pointer; text-decoration:underline; text-decoration-color:rgba(241,237,228,.3); text-underline-offset:3px; }
+  .cart-trigger:hover{ text-decoration-color:rgba(241,237,228,.7); }
+
+  #cartList{ overflow-y:auto; max-height:50vh; margin:4px 0 4px; }
+  .cart-row{
+    display:flex; align-items:flex-start; gap:10px; padding:9px 0;
+    border-bottom:1px solid #423e37;
+  }
+  .cart-row:last-child{ border-bottom:none; }
+  .cart-row .cart-info{ flex:1; min-width:0; }
+  .cart-row .cart-name{ font-size:13.5px; color:#f1ede4; font-weight:600; }
+  .cart-row .cart-meta{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .cart-row .cart-price{ font-size:13px; color:#e9e5dc; white-space:nowrap; }
+  .cart-row .cart-remove{
+    background:transparent; border:1px solid var(--panel-border); color:var(--accent-soft);
+    width:26px; height:26px; border-radius:50%; padding:0; font-size:14px; flex-shrink:0;
+  }
+  .cart-row .cart-remove:hover{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .cart-empty{ color:var(--muted); font-size:13px; text-align:center; padding:24px 0; }
+
+  .cart-sidebar{
+    display:none;
+    position:fixed; left:calc(50% + 400px); top:20px; width:270px;
+    max-height:85vh; overflow-y:auto;
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:14px;
+    padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.2);
+  }
+  .cart-sidebar-title{ font-size:14px; font-weight:700; color:#f1ede4; margin:0 0 10px; }
+  .cart-sidebar .cart-row{ align-items:center; }
+  .cart-sidebar .cart-row .qty{ margin-top:4px; }
+  .cart-sidebar-footer{
+    border-top:1px solid var(--panel-border); margin-top:10px; padding-top:12px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .cart-sidebar-footer span{ font-size:13px; font-weight:600; color:#f1ede4; }
+  .cart-sidebar-footer button{ width:100%; }
+  @media (min-width:1440px){ .cart-sidebar{ display:block; } }
 </style>
 </head>
 <body>
 <div class="app">
 
   <header class="top">
+    <div class="app-icon">🍟</div>
     <p class="eyebrow">Team lunch tool</p>
-    <h1>🍟 Vrijdaglunch — Anderz</h1>
+    <h1>Vrijdaglunch — Anderz</h1>
     <p class="sub">Iedereen vult hier zijn bestelling in. Jij ziet in "Overzicht" de verzamellijst en het bedrag per collega.</p>
   </header>
 
@@ -259,10 +327,30 @@
   <div class="sticky-bar" id="stickyBar">
     <div class="confirm" id="confirmBox"></div>
     <div class="sticky-bar-row">
-      <span id="stickySummary">Nog niets gekozen</span>
+      <span id="stickySummary" class="cart-trigger" onclick="openCart()">Nog niets gekozen</span>
       <button class="btn-primary" onclick="submitOrder()">Bestelling doorgeven</button>
     </div>
   </div>
+
+  <div class="modal-overlay" id="cartOverlay">
+    <div class="modal-box cart-box">
+      <p class="modal-title">Jouw bestelling</p>
+      <div id="cartList"></div>
+      <div class="modal-btns" style="justify-content:space-between; margin-top:14px;">
+        <button class="btn-ghost btn-sm" onclick="closeCart()">Sluiten</button>
+        <button class="btn-primary btn-sm" onclick="closeCart(); submitOrder();">Bestelling doorgeven</button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="cart-sidebar" id="cartSidebar">
+    <p class="cart-sidebar-title">Jouw bestelling</p>
+    <div id="cartSidebarList"></div>
+    <div class="cart-sidebar-footer">
+      <span id="cartSidebarTotal">Nog niets gekozen</span>
+      <button class="btn-primary btn-sm" onclick="submitOrder()">Bestelling doorgeven</button>
+    </div>
+  </aside>
 
   <!-- OVERVIEW VIEW -->
   <div class="view" id="view-overview">
@@ -669,6 +757,148 @@ function updateStickySummary(){
   if(customQty > 0){ count += customQty; total += customPrice * customQty; }
   const el = document.getElementById('stickySummary');
   el.textContent = count > 0 ? `${count} item(s) · ${euro(total)}` : 'Nog niets gekozen';
+
+  renderCartSidebar();
+  if(document.getElementById('cartOverlay').classList.contains('show')) renderCart();
+}
+
+function clearItemSelection(item){
+  const span = document.getElementById('qty-'+item.id);
+  if(span) span.textContent = '0';
+  if(item.groups && item.groups.length){
+    item.groups.forEach((grp, gi)=>{
+      if(grp.type === 'single'){
+        const sel = document.getElementById(`grp-${item.id}-${gi}`);
+        if(sel) sel.value = '';
+      } else {
+        grp.options.forEach((o,oi)=>{
+          const cb = document.getElementById(`grp-${item.id}-${gi}-${oi}`);
+          if(cb) cb.checked = false;
+        });
+      }
+    });
+  } else {
+    const inp = document.getElementById('note-'+item.id);
+    if(inp) inp.value = '';
+  }
+}
+
+function removeCartItem(id){
+  if(id === '__custom__'){
+    customQty = 0;
+    document.getElementById('customQty').textContent = '0';
+    document.getElementById('customName').value = '';
+    document.getElementById('customPrice').value = '';
+  } else {
+    const item = menu.find(m=>m.id===id);
+    if(item) clearItemSelection(item);
+  }
+  renderCart();
+  updateStickySummary();
+}
+
+function renderCart(){
+  const listEl = document.getElementById('cartList');
+  const rows = [];
+
+  menu.forEach(item=>{
+    const span = document.getElementById('qty-'+item.id);
+    if(!span) return;
+    const qty = parseInt(span.textContent) || 0;
+    if(qty <= 0) return;
+    const { note, extra } = readGroupsSelection(item);
+    const lineTotal = (item.price + extra) * qty;
+    rows.push(`
+      <div class="cart-row">
+        <div class="cart-info">
+          <div class="cart-name">${qty}× ${item.name}</div>
+          ${note ? `<div class="cart-meta">${note}</div>` : ''}
+        </div>
+        <div class="cart-price">${euro(lineTotal)}</div>
+        <button class="cart-remove" onclick="removeCartItem('${item.id}')" title="Verwijderen">✕</button>
+      </div>
+    `);
+  });
+
+  const customName = document.getElementById('customName').value.trim();
+  if(customName && customQty > 0){
+    const customPrice = parseEuro(document.getElementById('customPrice').value);
+    rows.push(`
+      <div class="cart-row">
+        <div class="cart-info">
+          <div class="cart-name">${customQty}× ${customName}</div>
+        </div>
+        <div class="cart-price">${euro(customPrice*customQty)}</div>
+        <button class="cart-remove" onclick="removeCartItem('__custom__')" title="Verwijderen">✕</button>
+      </div>
+    `);
+  }
+
+  listEl.innerHTML = rows.length ? rows.join('') : '<div class="cart-empty">Nog niets gekozen.</div>';
+}
+
+function renderCartSidebar(){
+  const sidebar = document.getElementById('cartSidebar');
+  if(!sidebar) return;
+  const listEl = document.getElementById('cartSidebarList');
+  const rows = [];
+  let count = 0, total = 0;
+
+  menu.forEach(item=>{
+    const span = document.getElementById('qty-'+item.id);
+    if(!span) return;
+    const qty = parseInt(span.textContent) || 0;
+    if(qty <= 0) return;
+    const { note, extra } = readGroupsSelection(item);
+    const lineTotal = (item.price + extra) * qty;
+    count += qty; total += lineTotal;
+    rows.push(`
+      <div class="cart-row">
+        <div class="cart-info">
+          <div class="cart-name">${item.name}</div>
+          ${note ? `<div class="cart-meta">${note}</div>` : ''}
+          <div class="qty">
+            <button onclick="changeQty('${item.id}',-1)">−</button>
+            <span>${qty}</span>
+            <button onclick="changeQty('${item.id}',1)">+</button>
+          </div>
+        </div>
+        <div class="cart-price">${euro(lineTotal)}</div>
+        <button class="cart-remove" onclick="removeCartItem('${item.id}')" title="Verwijderen">✕</button>
+      </div>
+    `);
+  });
+
+  const customName = document.getElementById('customName').value.trim();
+  if(customName && customQty > 0){
+    const customPrice = parseEuro(document.getElementById('customPrice').value);
+    count += customQty; total += customPrice*customQty;
+    rows.push(`
+      <div class="cart-row">
+        <div class="cart-info">
+          <div class="cart-name">${customName}</div>
+          <div class="qty">
+            <button onclick="changeCustomQty(-1)">−</button>
+            <span>${customQty}</span>
+            <button onclick="changeCustomQty(1)">+</button>
+          </div>
+        </div>
+        <div class="cart-price">${euro(customPrice*customQty)}</div>
+        <button class="cart-remove" onclick="removeCartItem('__custom__')" title="Verwijderen">✕</button>
+      </div>
+    `);
+  }
+
+  listEl.innerHTML = rows.length ? rows.join('') : '<div class="cart-empty">Nog niets gekozen.</div>';
+  document.getElementById('cartSidebarTotal').textContent = count > 0 ? `${count} item(s) · ${euro(total)}` : 'Nog niets gekozen';
+}
+
+function openCart(){
+  renderCart();
+  document.getElementById('cartOverlay').classList.add('show');
+}
+function closeCart(){
+  document.getElementById('cartOverlay').classList.remove('show');
 }
 
 const ORDER_EMAIL = 'tkruisselbrink@legamaster.com';
@@ -760,7 +990,7 @@ async function submitOrder(){
   let sheetOk = false;
   if(SHEET_WEBHOOK_URL){
     try{
-      sheetOk = submitToSheetWebhook(SHEET_WEBHOOK_URL, { name, items, subtotal, roundDate: fmtDate(roundKey) });
+      sheetOk = submitToSheetWebhook(SHEET_WEBHOOK_URL, { name, items, subtotal, roundDate: roundKey });
     } catch(e){ sheetOk = false; }
   }
 
