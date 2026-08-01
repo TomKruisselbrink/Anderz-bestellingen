@@ -230,7 +230,15 @@
     stopRequested = false;
     for(const item of items){
       if(stopRequested) break;
-      await processItem(item);
+      try{
+        await processItem(item);
+      } catch(err){
+        const row = logRow(`${item.qty}x ${item.name}${item.note ? ' ('+item.note+')' : ''}`);
+        updateRow(row, 'fail', 'onverwachte fout: ' + (err && err.message ? err.message : err));
+        // Try to close any stray open modal so the next item can start cleanly.
+        const stray = document.querySelector('.modal.additionals.modal-show .button-cancel');
+        if(stray){ stray.click(); await sleep(300); }
+      }
     }
     document.getElementById(PREFIX + 'start').style.display = 'block';
     document.getElementById(PREFIX + 'stop').style.display = 'none';
