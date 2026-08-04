@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vrijdaglunch — Anderz</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
     --ink:#1c1a17;
@@ -257,7 +258,21 @@
   }
   .cart-sidebar-footer span{ font-size:13px; font-weight:600; color:#f1ede4; }
   .cart-sidebar-footer button{ width:100%; }
-  @media (min-width:1440px){ .cart-sidebar{ display:block; } }
+  @media (min-width:1440px){ .cart-sidebar{ display:block; } }  .summary-receipt{
+    position:fixed; left:-9999px; top:0;
+    width:360px; background:#fbfaf6; color:#1c1a17; font-family:var(--sans);
+    padding:26px 24px;
+  }
+  .summary-receipt h3{ margin:0 0 4px; font-size:16px; }
+  .summary-receipt .sub{ font-size:11.5px; color:#7a7568; margin:0 0 18px; }
+  .summary-receipt .row{
+    display:flex; justify-content:space-between; padding:8px 0;
+    border-bottom:1px dashed #d8d3c4; font-size:14px;
+  }
+  .summary-receipt .row .n{ font-weight:600; }
+  .summary-receipt .row .a{ font-variant-numeric:tabular-nums; }
+  .summary-receipt .grand{ display:flex; justify-content:space-between; padding-top:12px; margin-top:6px; border-top:2px solid #1c1a17; font-weight:700; font-size:14.5px; }
+  #summaryImageResult img{ max-width:100%; border-radius:8px; border:1px solid var(--panel-border); }
 </style>
 </head>
 <body>
@@ -389,6 +404,15 @@
       <div class="btn-row" style="margin-top:10px; display:flex; gap:8px;">
         <button class="btn-primary" onclick="copyTikkie()">Kopieer bericht</button>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2>Overzicht-foto (voor Tikkie)</h2>
+      <p class="hint">Maakt een afbeelding met naam + bedrag per persoon, klaar om als foto bij je Tikkie-verzoek te voegen.</p>
+      <div style="margin-top:10px">
+        <button class="btn-primary" onclick="makeSummaryImage()">Maak foto</button>
+      </div>
+      <div id="summaryImageResult" style="margin-top:14px"></div>
     </div>
 
     <div class="panel">
@@ -1126,8 +1150,15 @@ function parseSheetPaste(raw){
   return order.map(n => perPerson[n]);
 }
 
+let lastOrders = [];
+const BENZINE_KOSTEN = 1.16; // vast bedrag per rit naar Anderz
+
 function renderOverview(orders){
+  lastOrders = orders;
   const tableEl = document.getElementById('overviewTable');
+  const participants = orders.length + 1; // +1 = Tom himself, never on the order list
+  const fuelShare = orders.length > 0 ? BENZINE_KOSTEN / participants : 0;
+
   if(orders.length === 0){
     tableEl.innerHTML = '<div class="empty-note">Nog geen bestellingen herkend. Plak hierboven Sheet-rijen of mailtekst en klik op "Bestellingen herkennen".</div>';
   } else {
@@ -1135,11 +1166,12 @@ function renderOverview(orders){
     let rows = '';
     orders.forEach(o=>{
       const summary = o.items.map(i => `${i.qty}× ${i.name}`).join(', ');
-      rows += `<tr><td>${o.name}</td><td>${summary}</td><td class="amt">${euro(o.subtotal)}</td></tr>`;
-      grand += o.subtotal;
+      const total = o.subtotal + fuelShare;
+      grand += total;
+      rows += `<tr><td>${o.name}</td><td>${summary}</td><td class="amt">${euro(o.subtotal)}</td><td class="amt">${euro(fuelShare)}</td><td class="amt">${euro(total)}</td></tr>`;
     });
-    rows += `<tr class="grand"><td></td><td>Totaal</td><td class="amt">${euro(grand)}</td></tr>`;
-    tableEl.innerHTML = `<table><tr><th>Naam</th><th>Bestelling</th><th class="amt">Bedrag</th></tr>${rows}</table>`;
+    rows += `<tr class="grand"><td></td><td>Totaal</td><td class="amt">${euro(grand - fuelShare*orders.length)}</td><td class="amt">${euro(fuelShare*orders.length)}</td><td class="amt">${euro(grand)}</td></tr>`;
+    tableEl.innerHTML = `<table><tr><th>Naam</th><th>Bestelling</th><th class="amt">Eten</th><th class="amt">Benzine</th><th class="amt">Totaal</th></tr>${rows}</table>`;
   }
 
   const agg = {};
@@ -1160,9 +1192,12 @@ function renderOverview(orders){
   });
   document.getElementById('aggListRaw').value = rawLines.join('\n');
 
-  const grandTotal = orders.reduce((s,o)=>s+o.subtotal,0);
+  const grandTotal = orders.reduce((s,o)=>s + o.subtotal + fuelShare, 0);
   let tikkie = `🍟 Vrijdaglunch bij Anderz — ${fmtDate(roundKey)}\n\n`;
-  orders.forEach(o=>{ tikkie += `- ${o.name}: ${euro(o.subtotal)}\n`; });
+  orders.forEach(o=>{
+    const total = o.subtotal + fuelShare;
+    tikkie += `- ${o.name}: ${euro(total)} (eten ${euro(o.subtotal)} + ${euro(fuelShare)} benzine)\n`;
+  });
   tikkie += `\nTotaal: ${euro(grandTotal)}\nTik je bedrag even over, graag voor maandag! 🙏`;
   document.getElementById('tikkieText').value = orders.length ? tikkie : '';
 }
@@ -1203,6 +1238,55 @@ function copyTikkie(){
     btn.textContent = 'Gekopieerd!';
     setTimeout(()=> btn.textContent = old, 1500);
   });
+}
+
+async function makeSummaryImage(){
+  if(!lastOrders || lastOrders.length === 0){
+    await showAlert('Nog geen bestellingen herkend. Klik eerst op "Bestellingen herkennen" hierboven.');
+    return;
+  }
+  const participants = lastOrders.length + 1;
+  const fuelShare = BENZINE_KOSTEN / participants;
+
+  const receipt = document.createElement('div');
+  receipt.className = 'summary-receipt';
+  const rowsHtml = lastOrders.map(o => {
+    const total = o.subtotal + fuelShare;
+    return `<div class="row"><span class="n">${o.name}</span><span class="a">${euro(total)}</span></div>`;
+  }).join('');
+  const grandTotal = lastOrders.reduce((s,o)=> s + o.subtotal + fuelShare, 0);
+  receipt.innerHTML = `
+    <h3>🍟 Vrijdaglunch — Anderz</h3>
+    <p class="sub">${fmtDate(roundKey)}</p>
+    ${rowsHtml}
+    <div class="grand"><span>Totaal</span><span>${euro(grandTotal)}</span></div>
+  `;
+  document.body.appendChild(receipt);
+
+  const canvas = await html2canvas(receipt, { backgroundColor: null, scale: 3 });
+  receipt.remove();
+
+  const dataUrl = canvas.toDataURL('image/png');
+  const resultEl = document.getElementById('summaryImageResult');
+  resultEl.innerHTML = `
+    <img src="${dataUrl}" alt="Overzicht">
+    <div style="margin-top:10px; display:flex; gap:8px;">
+      <a class="btn-primary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center;" href="${dataUrl}" download="vrijdaglunch-overzicht-${roundKey}.png">Download foto</a>
+      <button class="btn-ghost btn-sm" id="copyImgBtn">Kopieer naar klembord</button>
+    </div>
+  `;
+  document.getElementById('copyImgBtn').onclick = async () => {
+    try{
+      const blob = await (await fetch(dataUrl)).blob();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      const btn = document.getElementById('copyImgBtn');
+      const old = btn.textContent;
+      btn.textContent = 'Gekopieerd!';
+      setTimeout(()=> btn.textContent = old, 1500);
+    } catch(err){
+      await showAlert('Kopiëren naar klembord lukte niet in deze browser — gebruik dan "Download foto" en plak die handmatig in Tikkie.');
+    }
+  };
 }
 
 async function startNewRound(){
